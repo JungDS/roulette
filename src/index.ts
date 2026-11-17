@@ -1,36 +1,9 @@
 import './localization';
-import { reportCommunityMapPlay } from './communityMaps';
-import { initMapSelector } from './mapSelector';
-import options from './options';
 import { Roulette } from './roulette';
-
-// 어떤 버전이 실제로 돌고 있는지 관측한다. 옛 서비스워커에 고착된 클라이언트는
-// 이 코드가 없는 번들을 쓰므로 이벤트를 보내지 않는다. 즉 전체 pageview 대비
-// 이 이벤트의 비율이 곧 회수율이다.
-//
-// 번들 파일명의 content hash를 그대로 버전으로 쓴다. 빌드 시 주입이 필요 없고,
-// 실제로 내용이 달라졌을 때만 값이 바뀌므로 커밋 해시보다 정확하다.
-// import.meta.url은 못 쓴다. Parcel이 번들 URL이 아니라 소스 경로 리터럴로 치환한다.
-// dev 서버는 파일명에 해시가 없어 'dev'로 떨어진다.
-const bundleSrc = document.querySelector<HTMLScriptElement>('script[type="module"]')?.src ?? '';
-const version = bundleSrc.match(/\.([0-9a-f]{6,})\.js/)?.[1] ?? 'dev';
-
-// umami는 defer로 로드되므로 load 시점이면 이미 준비돼 있다.
-window.addEventListener('load', () => {
-  (window as any).umami?.track('version', { v: version });
-});
+import { initUi } from './ui';
 
 const roulette = new Roulette();
+// 브라우저 콘솔에서 살펴보거나 테마를 바꿀 때 쓴다 (roulette.setTheme('dark'))
 (window as any).roulette = roulette;
 
-// 맵 공유마당 API 서버
-const isLocalhost = ['localhost', '127.0.0.1'].includes(location.hostname);
-const mapApiBase = isLocalhost ? 'http://localhost:3000' : 'https://marblerouletteshop.com';
-
-// index.html 이 초기화할 때 부른다
-(window as any).initMapSelector = (onMapChange: () => void, toast: (key: string) => void) =>
-  initMapSelector({ roulette, apiBase: mapApiBase, onMapChange, toast });
-
-// 시작 버튼. 받은 맵이면 플레이 1회를 알린다
-(window as any).reportMapPlay = () => reportCommunityMapPlay(mapApiBase, roulette.getCurrentMap()?.id ?? '');
-(window as any).options = options;
+initUi(roulette);

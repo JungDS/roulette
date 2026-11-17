@@ -52,5 +52,3 @@ export function translate(key: string): string {
   const table = Translations[locale ?? defaultLocale] as Record<string, string>;
   return table[key] ?? key;
 }
-
-(window as any).translateElement = translateElement;

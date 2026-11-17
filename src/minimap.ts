@@ -12,7 +12,7 @@ import { paintZonesFlat } from './zonePainter';
 
 /** 미니맵 최대 배율. 맵이 길거나 넓으면 이보다 작아진다 */
 const MINIMAP_SCALE = 4;
-/** 기본으로 보여주는 가로 범위 (공식 맵 크기). 맵 공유마당의 넓은 맵은 장애물이 있는 만큼 넓혀 보여준다 */
+/** 기본으로 보여주는 가로 범위 (기본 맵 크기). 더 넓은 맵은 장애물이 있는 만큼 넓혀 보여준다 */
 const MINIMAP_MIN_X = 0;
 const MINIMAP_UNITS = 26;
 /** 미니맵은 좌측에 세로로 긴 스트립이다. 다른 HUD가 피해가려면 이 값이 필요하다 */

@@ -3,7 +3,6 @@ import { canvasHeight, canvasWidth, initialZoom, Themes, winnerAreaHeight } from
 import type { StageDef } from './data/maps';
 import { paintEntity } from './entityPainter';
 import type { GameObject } from './gameObject';
-import { KeywordService } from './keywordService';
 import { translate } from './localization';
 import type { Marble } from './marble';
 import { MINIMAP_INSET, MINIMAP_WIDTH } from './minimap';
@@ -109,15 +108,6 @@ export class RouletteRenderer {
   private _resultCloseRect: Rect | null = null;
   private _resultPopupClosed = false;
   private _lastResult: Marble[] | null = null;
-  protected _keywordService: KeywordService;
-
-  constructor() {
-    this._keywordService = this.createKeywordService();
-  }
-
-  protected createKeywordService(): KeywordService {
-    return new KeywordService();
-  }
 
   get width() {
     return this._viewWidth;
@@ -150,7 +140,7 @@ export class RouletteRenderer {
   }
 
   async init() {
-    await Promise.all([this._load(), this._keywordService.init()]);
+    await this._load();
 
     this._canvas = document.createElement('canvas');
     this._canvas.width = canvasWidth;
@@ -251,13 +241,9 @@ export class RouletteRenderer {
     await Promise.all(loadPromises);
   }
 
+  /** 이름에 딸린 구슬 그림 (번들에 든 그림만 쓴다) */
   private getMarbleImage(name: string): CanvasImageSource | undefined {
-    // Priority 1: Hardcoded images
-    if (this._images[name]) {
-      return this._images[name];
-    }
-    // Priority 2: Keyword sprites from API
-    return this._keywordService.getSprite(name);
+    return this._images[name];
   }
 
   protected onBeforeEntities(): void {}
