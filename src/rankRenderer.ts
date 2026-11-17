@@ -76,7 +76,7 @@ export class RankRenderer implements UIObject {
     ctx.save();
     ctx.textAlign = 'right';
     ctx.font = '10pt sans-serif';
-    ctx.fillStyle = '#666';
+    ctx.fillStyle = theme.hudText;
     ctx.fillText(`${winners.length} / ${winners.length + marbles.length}`, width - 5, this.fontHeight);
 
     ctx.beginPath();
@@ -96,13 +96,15 @@ export class RankRenderer implements UIObject {
 
     ctx.font = 'bold 11pt sans-serif';
     if (theme.rankStroke) {
-      ctx.lineWidth = 2;
+      ctx.lineWidth = theme.light ? 3 : 2;
+      ctx.lineJoin = 'round';
       ctx.strokeStyle = theme.rankStroke;
     }
+    const nameColor = (hue: number) => `hsl(${hue} ${theme.marbleSaturation}% ${theme.rankLightness}%)`;
     winners.forEach((marble: { hue: number; name: string }, rank: number) => {
       const y = rank * this.fontHeight;
       if (y >= startY && y <= startY + height) {
-        ctx.fillStyle = `hsl(${marble.hue} 100% ${theme.marbleLightness}`;
+        ctx.fillStyle = nameColor(marble.hue);
         ctx.strokeText(`${this.isWinningRank(rank) ? '☆' : '\u2714'} ${marble.name} #${rank + 1}`, startX, 20 + y);
         ctx.fillText(`${this.isWinningRank(rank) ? '☆' : '\u2714'} ${marble.name} #${rank + 1}`, startX, 20 + y);
       }
@@ -111,7 +113,7 @@ export class RankRenderer implements UIObject {
     marbles.forEach((marble: { hue: number; name: string }, rank: number) => {
       const y = (rank + winners.length) * this.fontHeight;
       if (y >= startY && y <= startY + height) {
-        ctx.fillStyle = `hsl(${marble.hue} 100% ${theme.marbleLightness}`;
+        ctx.fillStyle = nameColor(marble.hue);
         ctx.strokeText(`${marble.name} #${rank + 1 + winners.length}`, startX, 20 + y);
         ctx.fillText(`${marble.name} #${rank + 1 + winners.length}`, startX, 20 + y);
       }

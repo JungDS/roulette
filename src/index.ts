@@ -1,5 +1,4 @@
 import './localization';
-import { AdService } from './adService';
 import { reportCommunityMapPlay } from './communityMaps';
 import { initMapSelector } from './mapSelector';
 import options from './options';
@@ -22,25 +21,10 @@ window.addEventListener('load', () => {
 });
 
 const roulette = new Roulette();
-
-const isLocalhost = ['localhost', '127.0.0.1'].includes(location.hostname);
-// 개발 중 `?mockAds` 로 열면 가짜 광고 서버(scripts/mock-ads.mjs)를 쓴다. 값으로 포트를 줄 수 있다 (?mockAds=3100)
-const mockAdsParam = isLocalhost ? new URLSearchParams(location.search).get('mockAds') : null;
-const adApiBase =
-  mockAdsParam !== null
-    ? `http://localhost:${mockAdsParam || '3100'}`
-    : isLocalhost
-      ? 'http://localhost:3000'
-      : 'https://marblerouletteshop.com';
-const adService = new AdService(adApiBase);
-
-// 소재를 시작 버튼 누른 뒤에 받으면 프리롤이 로고 없이 떴다가 늦게 채워진다. 미리 받아둔다
-const preloadNextAd = () => roulette.preloadAdImages(adService.nextUrls());
-adService.onUpdate = preloadNextAd;
-adService.init();
-
 (window as any).roulette = roulette;
-// 맵 공유마당 API 는 광고와 같은 서버에 있다
+
+// 맵 공유마당 API 서버
+const isLocalhost = ['localhost', '127.0.0.1'].includes(location.hostname);
 const mapApiBase = isLocalhost ? 'http://localhost:3000' : 'https://marblerouletteshop.com';
 
 // index.html 이 초기화할 때 부른다
@@ -50,57 +34,3 @@ const mapApiBase = isLocalhost ? 'http://localhost:3000' : 'https://marbleroulet
 // 시작 버튼. 받은 맵이면 플레이 1회를 알린다
 (window as any).reportMapPlay = () => reportCommunityMapPlay(mapApiBase, roulette.getCurrentMap()?.id ?? '');
 (window as any).options = options;
-const PREROLL_MS = 1500;
-
-function once(fn: () => void): () => void {
-  let called = false;
-  return () => {
-    if (called) return;
-    called = true;
-    fn();
-  };
-}
-
-(window as any).ads = {
-  beginRound(onStart: () => void) {
-    const start = once(onStart);
-
-    let ad = null;
-    try {
-      ad = adService.pickForRound();
-      roulette.setAd(ad);
-      if (ad) adService.trackImpression();
-      preloadNextAd();
-    } catch (e) {
-      console.error('[ads] 광고 준비 실패, 광고 없이 진행합니다', e);
-      ad = null;
-    }
-
-    roulette.startRecording().then(() => {
-      if (!ad) {
-        start();
-        return;
-      }
-
-      try {
-        roulette.showAdOverlay('preroll');
-      } catch (e) {
-        console.error('[ads] 프리롤 표시 실패, 바로 시작합니다', e);
-        start();
-        return;
-      }
-
-      window.setTimeout(() => {
-        roulette.hideAdOverlay();
-        start();
-      }, PREROLL_MS);
-    });
-  },
-  showResult() {
-    try {
-      roulette.showAdOverlay('result');
-    } catch (e) {
-      console.error('[ads] 결과 화면 광고 표시 실패', e);
-    }
-  },
-};

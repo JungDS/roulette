@@ -25,7 +25,7 @@
 
   <meta name="msapplication-TileColor" content="#ffffff">
   <meta name="msapplication-TileImage" content="assets/ms-icon-144x144.png">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#f3f6fc">
 
   <meta name="description" content="구슬을 굴려 당첨자를 뽑는 추첨기">
   <meta property="og:url" content="https://lazygyu.github.io/roulette/">
@@ -221,11 +221,7 @@
       }
       document.querySelector('#settings').classList.add('hide');
       window.reportMapPlay && window.reportMapPlay();
-      if (window.ads) {
-        window.ads.beginRound(() => window.roulette.start());
-      } else {
-        window.roulette.start();
-      }
+      window.roulette.start();
     });
 
     document.querySelector('#chkAutoRecording').addEventListener('change', (e) => {
@@ -259,7 +255,6 @@
 
     window.roulette.addEventListener('goal', () => {
       ready = false;
-      if (window.ads) window.ads.showResult();
       setTimeout(() => {
         document.querySelector('#settings').classList.remove('hide');
       }, 3000);
@@ -296,7 +291,7 @@
     // };
     // setTimeout(checkDonateButtonLoaded, 100);
 
-    const currentNotice = 9;
+    const currentNotice = 10;
     const noticeKey = 'lastViewedNotification';
 
     const closeNotice = () => {
@@ -438,22 +433,25 @@
 <div id="notice">
   <h2>Notice</h2>
   <div class="notice-body">
-    <h3>고해상도 화면을 지원합니다</h3>
+    <h3>밝은 테마 · 새 맵 · 역전 스킬</h3>
     <p>
-      설정의 "해상도"에서 화면을 더 선명하게 그릴 수 있습니다.<br />
-      <b>기본</b>은 지금까지와 같고, <b>High</b>는 최대 1920 해상도, <b>Ultra</b>는 화면 해상도 그대로 그립니다.
-      해상도를 바꿔도 맵 구도와 화면 배치는 그대로입니다.
+      빔 프로젝터나 큰 화면에 띄워도 잘 보이도록 <b>밝은 테마</b>로 다시 그렸습니다.
+      광고는 모두 뺐습니다.
     </p>
     <p>
-      해상도를 높이면 <b>녹화 파일의 용량이 커질 수 있습니다.</b>
-      4K 같은 고해상도 화면에서 Ultra 로 녹화하면 특히 커지니, 녹화 파일을 공유하실 때는 참고해 주세요.
+      새 맵 <b>핀볼 오디세이</b>가 기본 맵이 되었습니다.
+      범퍼, 플리퍼, 블랙홀, 젤리 늪, 바람 리프트, 행운의 드럼을 차례로 지나는 긴 코스입니다.
+    </p>
+    <p>
+      "스킬 활성화"를 켜 두면 <b>뒤처진 구슬</b>이 번개 · 터보 · 자리 바꾸기 · 중력장을 무작위로 씁니다.
+      끝까지 순위가 뒤집힐 수 있습니다.
     </p>
   </div>
   <div class="notice-action">
     <button id="closeNotice" data-trans>Close</button>
   </div>
 </div>
-<div class="copyright">&copy; 2022-2026. 마블 룰렛™ by <a href="https://lazygyu.net" target="_blank">lazygyu</a> | <a href="https://marblerouletteshop.com/advertise" target="_blank">광고문의</a>
+<div class="copyright">&copy; 2022-2026. 마블 룰렛™ by <a href="https://lazygyu.net" target="_blank">lazygyu</a>
 </div>
 </body>
 </html>

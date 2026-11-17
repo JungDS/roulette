@@ -16,7 +16,8 @@ function loadResolution(): RenderResolution {
   } catch {
     // 저장소를 못 쓰는 환경(사생활 보호 모드 등)은 기본값
   }
-  return 'default';
+  // 빔 프로젝터나 큰 화면에 띄워도 글자와 선이 흐려지지 않도록 처음부터 선명하게 그린다
+  return 'high';
 }
 
 export function saveResolution(value: RenderResolution) {

@@ -60,6 +60,7 @@ function isEntity(v: unknown): v is MapEntity {
     return false;
   }
   if (props.life !== undefined && !isNum(props.life)) return false;
+  if (v.motion !== undefined && !isMotion(v.motion)) return false;
   if (!isObj(shape)) return false;
   switch (shape.type) {
     case 'box':
@@ -83,9 +84,6 @@ export function isPlayableStage(v: unknown): v is StageDef {
   if (!isObj(v) || typeof v.title !== 'string' || !isNum(v.goalY) || !isNum(v.zoomY)) return false;
   if (!Array.isArray(v.entities) || v.entities.length === 0 || v.entities.length > MAX_ENTITIES) return false;
   if (!v.entities.every(isEntity)) return false;
-  if (v.adBoards !== undefined) {
-    if (!Array.isArray(v.adBoards) || !v.adBoards.every((b) => isObj(b) && isNum(b.x) && isNum(b.y))) return false;
-  }
   if (v.progress !== undefined) {
     if (!isObj(v.progress)) return false;
     const oneWays = v.progress.oneWays;
@@ -98,7 +96,56 @@ export function isPlayableStage(v: unknown): v is StageDef {
   }
   if (v.zoomZones !== undefined && !isZoneList(v.zoomZones)) return false;
   if (v.cameraZones !== undefined && !isZoneList(v.cameraZones)) return false;
+  if (v.zones !== undefined && !(Array.isArray(v.zones) && v.zones.every(isEffectZone))) return false;
+  if (v.background !== undefined) {
+    if (!Array.isArray(v.background)) return false;
+    if (!v.background.every((s) => isObj(s) && isNum(s.y) && typeof s.color === 'string')) return false;
+  }
+  if (v.labels !== undefined) {
+    if (!Array.isArray(v.labels)) return false;
+    const isLabel = (l: unknown) =>
+      isObj(l) && isNum(l.x) && isNum(l.y) && isNum(l.size) && l.size > 0 && typeof l.text === 'string';
+    if (!v.labels.every(isLabel)) return false;
+  }
   return true;
+}
+
+function isMotion(v: unknown): boolean {
+  if (!isObj(v) || !isNum(v.period) || v.period <= 0) return false;
+  if (v.phase !== undefined && !isNum(v.phase)) return false;
+  if (v.slide !== undefined && !isPoint(v.slide)) return false;
+  if (v.swing !== undefined && !isNum(v.swing)) return false;
+  return v.wave === undefined || v.wave === 'sine' || v.wave === 'kick';
+}
+
+/** 효과 구역 (부스터, 슬로우, 블랙홀) */
+function isEffectZone(v: unknown): boolean {
+  if (!isObj(v) || !isNum(v.x) || !isNum(v.y)) return false;
+  switch (v.type) {
+    case 'force':
+      return isNum(v.w) && isNum(v.h) && isPoint(v.force);
+    case 'slow':
+      return isNum(v.w) && isNum(v.h) && isNum(v.drag) && v.drag >= 0;
+    case 'blackhole':
+      return (
+        isNum(v.radius) &&
+        isNum(v.core) &&
+        v.core > 0 &&
+        v.radius > v.core &&
+        isNum(v.strength) &&
+        Array.isArray(v.exits) &&
+        v.exits.every(
+          (e) =>
+            isObj(e) &&
+            isNum(e.x) &&
+            isNum(e.y) &&
+            (e.velocity === undefined || isPoint(e.velocity)) &&
+            (e.weight === undefined || (isNum(e.weight) && e.weight >= 0))
+        )
+      );
+    default:
+      return false;
+  }
 }
 
 function isZoneList(v: unknown): boolean {
@@ -214,7 +261,7 @@ export function setSelectedMapId(id: string) {
 
 /**
  * 받은 맵으로 게임을 시작했다고 알린다. 맵 공유마당의 인기순(최근 7일 플레이) 에 쓰인다.
- * 광고 노출 집계처럼 결과를 기다리지 않는다. 본문과 헤더가 없는 POST 라 CORS 프리플라이트도 생기지 않는다
+ * 결과를 기다리지 않는다. 본문과 헤더가 없는 POST 라 CORS 프리플라이트도 생기지 않는다
  */
 export function reportCommunityMapPlay(apiBase: string, mapId: string) {
   if (!mapId.startsWith('community:')) return;

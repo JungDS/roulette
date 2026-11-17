@@ -1,5 +1,21 @@
+// 밝은 테마. 캔버스(src/data/constants.ts 의 Themes.light) 와 같은 색을 쓴다
 :root {
-  --copyright-color: white;
+  --ink: #232b45;
+  --ink-soft: #5c6789;
+  --panel: rgba(255, 255, 255, 0.95);
+  --panel-border: #d5ddf0;
+  --field: #f3f6fc;
+  --chip: #e4eaf7;
+  --chip-hover: #d5ddf0;
+  --accent: #3b6cf0;
+  --danger: #e0457b;
+  --copyright-color: var(--ink-soft);
+}
+
+body {
+  margin: 0;
+  background: #f3f6fc;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 
 * {
@@ -97,9 +113,12 @@ div.copyright a {
   position: fixed;
   bottom: 1rem;
   left: 1rem;
-  background: #666;
-  border-radius: 10px;
-  padding: 10px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(28, 36, 64, 0.18);
+  color: var(--ink);
+  padding: 12px;
   z-index: 999;
   min-width: 50%;
 
@@ -115,9 +134,9 @@ div.copyright a {
 
   h3 {
     padding: 0;
-    margin: 0;
+    margin: 0 0 4px;
     font-size: 12pt;
-    color: #fefefe;
+    color: var(--ink);
   }
 
   textarea {
@@ -125,19 +144,29 @@ div.copyright a {
     // 오른쪽 칼럼이 패널 높이를 결정하면 '여러명'을 열 때 범위 행(div.row, 35px)만큼
     // 패널이 세로로 튄다. 왼쪽이 항상 더 크도록 그만큼 미리 확보해 높이를 고정한다
     min-height: calc(5rem + 35px);
-    border: none;
-    background: #999;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 6px 8px;
+    background: var(--field);
+    color: var(--ink);
     font-size: 14pt;
+
+    &:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: -1px;
+    }
   }
 
   button, .btn {
     color: #fefefe;
-    background: #222;
+    background: var(--ink);
     border: none;
-    border-radius: 5px;
-    padding: 5px 10px;
+    border-radius: 8px;
+    padding: 6px 12px;
     position: relative;
     display: inline-block;
+    cursor: pointer;
+    overflow: hidden;
 
     &:active:after {
       content: '';
@@ -176,6 +205,12 @@ div.copyright a {
     }
   }
 
+  #btnStart {
+    background: var(--accent);
+    font-weight: bold;
+    padding: 6px 18px;
+  }
+
   .btn-toggle-settings {
     display: none;
   }
@@ -195,7 +230,7 @@ div.copyright a {
         flex-grow: 0;
         flex-shrink: 0;
         padding-left: 1rem;
-        color: white;
+        color: var(--ink);
       }
 
       .toggle-item {
@@ -220,7 +255,7 @@ div.copyright a {
         .range-sep {
           flex: 0 0 24px;
           background: transparent;
-          color: white;
+          color: var(--ink);
         }
       }
     }
@@ -229,8 +264,10 @@ div.copyright a {
   select {
     height: 25px;
     width: 100%;
-    border-radius: 5px;
-    background: #999;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    background: var(--field);
+    color: var(--ink);
   }
 
   // 맵 선택 + 받은 맵 삭제 + 맵 공유마당 바로가기
@@ -252,9 +289,9 @@ div.copyright a {
     height: 25px;
     padding: 0;
     border: none;
-    border-radius: 5px;
-    background: #999;
-    color: #222;
+    border-radius: 6px;
+    background: var(--chip);
+    color: var(--ink);
     font-size: 13px;
     line-height: 25px;
     text-align: center;
@@ -266,7 +303,7 @@ div.copyright a {
     }
 
     &:hover {
-      background: #bbb;
+      background: var(--chip-hover);
     }
 
     // 받은 맵에 업데이트가 있다
@@ -282,7 +319,7 @@ div.copyright a {
         height: 9px;
         border-radius: 50%;
         background: #ff5a4f;
-        border: 2px solid #666;
+        border: 2px solid #fff;
       }
     }
   }
@@ -302,7 +339,7 @@ div.copyright a {
       width: 50px;
       height: 25px;
       border-radius: 25px;
-      background: #999;
+      background: #c3cce3;
       top: 0;
       left: 0;
     }
@@ -315,7 +352,8 @@ div.copyright a {
       border-radius: 25px;
       width: 25px;
       height: 25px;
-      background: #ccc;
+      background: white;
+      box-shadow: 0 1px 3px rgba(28, 36, 64, 0.35);
       transition: transform .2s;
     }
 
@@ -326,7 +364,7 @@ div.copyright a {
 
     &:checked:before {
       content: '';
-      background: #00baff;
+      background: var(--accent);
     }
   }
 
@@ -345,10 +383,10 @@ div.copyright a {
       overflow: hidden;
       height: 25px;
       border-radius: 0;
-      background: #999;
+      background: var(--chip);
       border: none;
       padding: 0;
-      color: #fefefe;
+      color: var(--ink);
 
       display: flex;
       align-items: center;
@@ -374,7 +412,8 @@ div.copyright a {
       }
 
       &.active {
-        background: #333;
+        background: var(--ink);
+        color: #fefefe;
       }
     }
 
@@ -498,7 +537,7 @@ div.copyright a {
     div.right div.row {
       height: auto;
       display: block;
-      border-bottom: 1px solid #555;
+      border-bottom: 1px solid var(--panel-border);
       padding: .5rem 0;
 
       label {
@@ -570,9 +609,11 @@ div.copyright a {
 div.toast {
   position: fixed;
   transform: translate(-50%, 0);
-  padding: 8px;
-  border-radius: 4px;
-  background: #ccc;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fefefe;
+  box-shadow: 0 6px 18px rgba(28, 36, 64, 0.25);
   overflow: hidden;
   bottom: 10px;
   left: 50%;
@@ -649,14 +690,15 @@ dialog.map-browser {
   height: 80vh;
   max-height: 720px;
   padding: 0;
-  border: none;
-  border-radius: 10px;
-  background: #555;
-  color: #fefefe;
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 16px 48px rgba(28, 36, 64, 0.3);
   overflow: hidden;
 
   &::backdrop {
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(28, 36, 64, 0.35);
   }
 
   .mb-panel {
@@ -670,7 +712,8 @@ dialog.map-browser {
     align-items: center;
     justify-content: space-between;
     padding: 10px 12px;
-    background: #444;
+    background: var(--field);
+    border-bottom: 1px solid var(--panel-border);
   }
 
   .mb-title {
@@ -680,9 +723,9 @@ dialog.map-browser {
 
   button {
     color: #fefefe;
-    background: #222;
+    background: var(--ink);
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     padding: 5px 10px;
     cursor: pointer;
     font-size: 10pt;
@@ -693,12 +736,13 @@ dialog.map-browser {
     }
 
     &:not(:disabled):hover {
-      background: #000;
+      filter: brightness(1.25);
     }
   }
 
   .mb-close {
     background: transparent;
+    color: var(--ink);
     font-size: 14pt;
     padding: 0 6px;
   }
@@ -711,12 +755,14 @@ dialog.map-browser {
     .mb-tab {
       flex: 1 1 0;
       position: relative;
-      background: #444;
-      border-radius: 5px 5px 0 0;
+      background: var(--chip);
+      color: var(--ink);
+      border-radius: 6px 6px 0 0;
       white-space: nowrap;
 
       &.active {
-        background: #777;
+        background: var(--ink);
+        color: #fefefe;
       }
 
       &.has-update::after {
@@ -735,10 +781,10 @@ dialog.map-browser {
   .mb-search {
     margin: 0 12px;
     padding: 6px 8px;
-    border: none;
-    border-radius: 0 0 5px 5px;
-    background: #999;
-    color: #111;
+    border: 1px solid var(--panel-border);
+    border-radius: 0 0 6px 6px;
+    background: var(--field);
+    color: var(--ink);
     font-size: 11pt;
 
     &[hidden] {
@@ -764,8 +810,9 @@ dialog.map-browser {
     align-items: center;
     gap: 10px;
     padding: 6px;
-    border-radius: 6px;
-    background: #666;
+    border-radius: 8px;
+    background: var(--field);
+    border: 1px solid var(--panel-border);
   }
 
   .mb-thumb {
@@ -773,7 +820,7 @@ dialog.map-browser {
     flex: 0 0 48px;
     height: 64px;
     border-radius: 4px;
-    background: #000;
+    background: var(--ink);
     overflow: hidden;
 
     // 세로로 긴 SVG 가 칸을 늘리지 않도록 칸에 고정한다
@@ -795,7 +842,7 @@ dialog.map-browser {
   }
 
   .mb-card-title {
-    color: #fefefe;
+    color: var(--ink);
     font-weight: bold;
     text-decoration: none;
     overflow: hidden;
@@ -810,7 +857,7 @@ dialog.map-browser {
   .mb-card-author,
   .mb-card-stats {
     font-size: 9pt;
-    color: #ddd;
+    color: var(--ink-soft);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -824,11 +871,12 @@ dialog.map-browser {
 
     &.mb-badge-update {
       background: #ff5a4f;
+      color: #fefefe;
     }
 
     &.mb-badge-gone {
-      background: #333;
-      color: #bbb;
+      background: var(--chip);
+      color: var(--ink-soft);
     }
   }
 
@@ -852,7 +900,7 @@ dialog.map-browser {
 
     &.mb-action-remove {
       background: transparent;
-      color: #ddd;
+      color: var(--ink-soft);
       font-size: 9pt;
     }
   }
@@ -863,7 +911,7 @@ dialog.map-browser {
     align-items: center;
     gap: 8px;
     padding: 16px 0;
-    color: #ddd;
+    color: var(--ink-soft);
 
     &:empty {
       display: none;
@@ -885,11 +933,12 @@ dialog.map-browser {
     justify-content: center;
     gap: 16px;
     padding: 8px 12px;
-    background: #444;
+    background: var(--field);
+    border-top: 1px solid var(--panel-border);
     font-size: 10pt;
 
     a {
-      color: #fefefe;
+      color: var(--accent);
     }
   }
 }

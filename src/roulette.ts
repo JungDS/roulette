@@ -1,9 +1,10 @@
 import { Camera } from './camera';
+import { type CatchUpEvent, CatchUpSkills } from './catchUp';
 import { canvasHeight, canvasWidth, initialZoom, Skills, Themes, zoomThreshold } from './data/constants';
 import { type StageDef, stages } from './data/maps';
 import { FastForwader } from './fastForwader';
 import type { GameObject } from './gameObject';
-import type { IPhysics } from './IPhysics';
+import type { IPhysics, PhysicsEvent } from './IPhysics';
 import { Marble } from './marble';
 import { Minimap } from './minimap';
 import options, { isRenderResolution, saveResolution, type WinnerRange } from './options';
@@ -11,9 +12,10 @@ import { ParticleManager } from './particleManager';
 import { Box2dPhysics } from './physics-box2d';
 import { ProgressMap } from './progressMap';
 import { RankRenderer } from './rankRenderer';
-import { type AdHit, type RenderResolution, RouletteRenderer } from './rouletteRenderer';
+import { type RenderResolution, RouletteRenderer } from './rouletteRenderer';
 import { SkillEffect } from './skillEffect';
-import type { RoundAd } from './types/Ad.type';
+import { BreakEffect, GravityWellEffect, LightningEffect, SwapEffect, WarpEffect } from './skillEffects';
+import { SkillFeed } from './skillFeed';
 import type { ColorTheme } from './types/ColorTheme';
 import type { MouseEventHandlerName, MouseEventName } from './types/mouseEvents.type';
 import type { UIObject } from './UIObject';
@@ -81,10 +83,14 @@ export class Roulette extends EventTarget {
   private _recorder!: VideoRecorder;
 
   private physics!: IPhysics;
+  /** 역전 스킬 (뒤처진 구슬에게 주는 무작위 스킬). 스킬 옵션이 켜져 있고 경주 중일 때만 돈다 */
+  private _catchUp!: CatchUpSkills;
+  private _catchUpActive = false;
+  private _skillFeed = new SkillFeed();
 
   private _isReady: boolean = false;
   protected fastForwarder!: FastForwader;
-  protected _theme: ColorTheme = Themes.dark;
+  protected _theme: ColorTheme = Themes.light;
 
   get isReady() {
     return this._isReady;
@@ -147,6 +153,7 @@ export class Roulette extends EventTarget {
     while (this._elapsed >= this._updateInterval) {
       simSeconds += interval;
       this.physics.step(interval);
+      this._showPhysicsEvents(this.physics.drainEvents());
       this._updateMarbles(this._updateInterval, timeScale);
       this._particleManager.update(this._updateInterval);
       this._updateEffects(this._updateInterval);
@@ -266,9 +273,53 @@ export class Roulette extends EventTarget {
     this._zoomIntensity = zones ? (focus ? intensityOf(focus) : 0) : null;
     this._timeScale = this._calcTimeScale();
 
-    this._marbles = this._marbles.filter((marble) => marble.y <= this._stage?.goalY);
+    this._marbles = this._marbles.filter((marble) => marble.y <= stage.goalY);
 
+    this._updateCatchUp(stage);
     this._checkFinish();
+  }
+
+  /** 역전 스킬을 돌리고, 터진 스킬을 화면에 알린다 */
+  private _updateCatchUp(stage: StageDef) {
+    const shouldRun = this._isRunning && options.useSkills;
+    if (shouldRun !== this._catchUpActive) {
+      this._catchUpActive = shouldRun;
+      if (shouldRun) this._catchUp.start();
+      else this._catchUp.clear();
+    }
+    if (!shouldRun) return;
+    for (const event of this._catchUp.update(this._marbles, ProgressMap.for(stage))) {
+      this._showCatchUp(event);
+    }
+  }
+
+  private _showCatchUp(event: CatchUpEvent) {
+    this._skillFeed.push(event);
+    switch (event.skill) {
+      case 'lightning':
+        this._effects.push(new LightningEffect(event.caster, event.target));
+        break;
+      case 'swap':
+        this._effects.push(new SwapEffect(event.caster, event.target, event.delay * 1000));
+        break;
+      case 'gravity':
+        this._effects.push(
+          new GravityWellEffect(event.x, event.y, event.radius, () => this.physics.elapsed, event.until)
+        );
+        break;
+    }
+  }
+
+  /** 물리 스텝에서 일어난 일(블랙홀 워프, 블록 파괴) 을 화면에 보여 준다 */
+  private _showPhysicsEvents(events: PhysicsEvent[]) {
+    for (const event of events) {
+      if (event.type === 'warp') {
+        this._effects.push(new WarpEffect(event.from.x, event.from.y, true));
+        this._effects.push(new WarpEffect(event.to.x, event.to.y, false));
+      } else {
+        this._effects.push(new BreakEffect(event.x, event.y, event.color ?? this._theme.entity.box.fill));
+      }
+    }
   }
 
   /** 카메라와 슬로우모션이 주목할 구슬 = 당첨 커트라인에 걸쳐있는 구슬 */
@@ -357,6 +408,7 @@ export class Roulette extends EventTarget {
       result: this._result,
       size: { x: this._renderer.width, y: this._renderer.height },
       theme: this._theme,
+      time: this.physics.elapsed,
     };
     this._renderer.render(renderParams, this._uiObjects);
   }
@@ -366,6 +418,7 @@ export class Roulette extends EventTarget {
 
     this.physics = new Box2dPhysics();
     await this.physics.init();
+    this._catchUp = new CatchUpSkills(this.physics);
 
     this.addUiObject(new RankRenderer());
     this.attachEvent();
@@ -381,6 +434,7 @@ export class Roulette extends EventTarget {
     this.addUiObject(minimap);
     this.fastForwarder = this.createFastForwader();
     this.addUiObject(this.fastForwarder);
+    this.addUiObject(this._skillFeed);
     this._stage = stages[0];
     this._loadMap();
   }
@@ -433,23 +487,13 @@ export class Roulette extends EventTarget {
     });
 
     canvas.addEventListener('click', (e) => {
-      // 광고 오버레이가 팝업 위에 그려지므로 먼저 검사한다
-      const hit = this.adHitAt(e);
-      if (hit) {
-        if (hit.type === 'close') {
-          this.hideAdOverlay();
-        } else {
-          window.open(hit.url, '_blank', 'noopener');
-        }
-        return;
-      }
       if (this.resultCloseHitAt(e)) {
         this._renderer.closeResultPopup();
       }
     });
 
     canvas.addEventListener('pointermove', (e) => {
-      canvas.style.cursor = this.adHitAt(e) || this.resultCloseHitAt(e) ? 'pointer' : '';
+      canvas.style.cursor = this.resultCloseHitAt(e) ? 'pointer' : '';
     });
   }
 
@@ -465,19 +509,13 @@ export class Roulette extends EventTarget {
   public clearMarbles() {
     this._pendingRemovals.forEach((id) => window.clearTimeout(id));
     this._pendingRemovals = [];
+    this._catchUp.clear();
+    this._catchUpActive = false;
+    this._skillFeed.clear();
     this.physics.clearMarbles();
     this._result = null;
     this._winners = [];
     this._marbles = [];
-  }
-
-  public async startRecording() {
-    if (!this._autoRecording) return;
-    try {
-      await this._recorder.start();
-    } catch (e) {
-      console.error('recording failed to start', e);
-    }
   }
 
   public start() {
@@ -501,27 +539,6 @@ export class Roulette extends EventTarget {
       throw new Error('Speed multiplier must larger than 0');
     }
     this._speed = value;
-  }
-
-  public setAd(ad: RoundAd | null) {
-    this._renderer.setAd(ad);
-  }
-
-  public preloadAdImages(srcs: (string | undefined)[]) {
-    this._renderer.preloadAdImages(srcs);
-  }
-
-  public showAdOverlay(mode: 'preroll' | 'result') {
-    this._renderer.showAdOverlay(mode);
-  }
-
-  public hideAdOverlay() {
-    this._renderer.hideAdOverlay();
-  }
-
-  private adHitAt(e: MouseEvent): AdHit | null {
-    const sizeFactor = this._renderer.sizeFactor;
-    return this._renderer.getAdHitAt(e.offsetX * sizeFactor, e.offsetY * sizeFactor);
   }
 
   private resultCloseHitAt(e: MouseEvent): boolean {

@@ -17,13 +17,17 @@ export class Marble {
   weight: number = 1;
   skill: Skills = Skills.None;
   isActive: boolean = false;
+  /** 이 물리 시각까지 번개에 맞아 굼뜬 상태 (catchUp.ts) */
+  stunUntil: number = 0;
+  /** 이 물리 시각까지 터보 상태 (catchUp.ts) */
+  boostUntil: number = 0;
 
   private _skillRate = 0.0005;
   private _coolTime = 5000;
   private _maxCoolTime = 5000;
   private _stuckTime = 0;
   private lastPosition: VectorLike = { x: 0, y: 0 };
-  private theme: ColorTheme = Themes.dark;
+  private theme: ColorTheme = Themes.light;
 
   private physics: IPhysics;
 
@@ -152,7 +156,7 @@ export class Marble {
   }
 
   private _renderMinimap(ctx: CanvasRenderingContext2D) {
-    ctx.fillStyle = this.color;
+    ctx.fillStyle = this.theme.light ? `hsl(${this.hue} ${this.theme.marbleSaturation}% 48%)` : this.color;
     this._drawMarbleBody(ctx, true);
   }
 
@@ -164,11 +168,22 @@ export class Marble {
 
   private _renderNormal(ctx: CanvasRenderingContext2D, zoom: number, outline: boolean, skin?: CanvasImageSource) {
     const hs = this.size / 2;
+    const theme = this.theme;
+    const lightness = theme.marbleLightness + 25 * Math.min(1, this.impact / 500);
+    const now = this.physics.elapsed;
 
-    ctx.fillStyle = `hsl(${this.hue} 100% ${this.theme.marbleLightness + 25 * Math.min(1, this.impact / 500)}%`;
+    if (now < this.boostUntil) this._drawBoost(ctx);
 
-    // ctx.shadowColor = this.color;
-    // ctx.shadowBlur = zoom / 2;
+    if (theme.light) {
+      // 바닥에 떨어지는 그림자
+      ctx.fillStyle = theme.shadow;
+      ctx.beginPath();
+      ctx.arc(this.x + hs * 0.12, this.y + hs * 0.3, hs, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = `hsl(${this.hue} ${theme.marbleSaturation}% ${lightness}%)`;
+
     if (skin) {
       transformGuard(ctx, () => {
         ctx.translate(this.x, this.y);
@@ -177,7 +192,19 @@ export class Marble {
       });
     } else {
       this._drawMarbleBody(ctx, false);
+      if (theme.light) {
+        // 짙은 테두리와 반사광으로 유리구슬처럼 보이게 한다
+        ctx.strokeStyle = `hsl(${this.hue} ${theme.marbleSaturation}% ${lightness - 26}%)`;
+        ctx.lineWidth = 1.5 / zoom;
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.62)';
+        ctx.beginPath();
+        ctx.ellipse(this.x - hs * 0.32, this.y - hs * 0.36, hs * 0.34, hs * 0.2, -0.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
+
+    if (now < this.stunUntil) this._drawStun(ctx, zoom, now);
 
     ctx.shadowColor = '';
     ctx.shadowBlur = 0;
@@ -192,12 +219,49 @@ export class Marble {
     }
   }
 
+  /** 터보: 달리는 반대쪽으로 불꽃 꼬리를 단다 */
+  private _drawBoost(ctx: CanvasRenderingContext2D) {
+    const hs = this.size / 2;
+    const v = this.physics.getMarbleVelocity(this.id);
+    const speed = Math.hypot(v.x, v.y);
+    const dx = speed > 0.01 ? -v.x / speed : 0;
+    const dy = speed > 0.01 ? -v.y / speed : -1;
+    const colors = ['rgba(250, 204, 21, 0.85)', 'rgba(249, 115, 22, 0.6)', 'rgba(239, 68, 68, 0.35)'];
+    for (let i = colors.length - 1; i >= 0; i--) {
+      const reach = hs * (0.7 + i * 0.75);
+      ctx.fillStyle = colors[i];
+      ctx.beginPath();
+      ctx.arc(this.x + dx * reach, this.y + dy * reach, hs * (1.05 - i * 0.22), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  /** 번개에 맞음: 구슬을 어둡게 덮고 둘레에 전기 고리를 돌린다 */
+  private _drawStun(ctx: CanvasRenderingContext2D, zoom: number, now: number) {
+    const hs = this.size / 2;
+    ctx.fillStyle = 'rgba(40, 40, 60, 0.4)';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, hs, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.save();
+    ctx.strokeStyle = '#eab308';
+    ctx.lineWidth = 2.5 / zoom;
+    ctx.setLineDash([hs * 0.5, hs * 0.45]);
+    ctx.lineDashOffset = now * 6;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, hs + 3.5 / zoom, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   private _drawName(ctx: CanvasRenderingContext2D, zoom: number) {
     transformGuard(ctx, () => {
-      ctx.font = `12pt sans-serif`;
-      ctx.strokeStyle = 'black';
-      ctx.lineWidth = 2;
-      ctx.fillStyle = this.color;
+      const theme = this.theme;
+      ctx.font = theme.light ? `bold 12pt sans-serif` : `12pt sans-serif`;
+      ctx.strokeStyle = theme.nameStroke;
+      ctx.lineWidth = theme.light ? 3.5 : 2;
+      ctx.lineJoin = 'round';
+      ctx.fillStyle = theme.light ? `hsl(${this.hue} 80% ${theme.nameLightness}%)` : this.color;
       ctx.shadowBlur = 0;
       ctx.translate(this.x, this.y + 0.25);
       ctx.scale(1 / zoom, 1 / zoom);
