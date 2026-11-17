@@ -2,6 +2,7 @@
 
 - 2026-11-17:
     - Removed all ads.
+    - The page no longer talks to any other server: analytics, the map share and keyword sprites are gone, and a Content Security Policy enforces it.
     - The bright theme is now the default (made for projectors): filled shapes, shadows, glossy marbles and a restyled UI.
     - New map elements: flippers, sliding blocks, boosters, slow zones and black holes.
     - Catch-up skills for trailing marbles: turbo, lightning, swap and gravity well.
