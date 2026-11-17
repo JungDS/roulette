@@ -168,7 +168,7 @@ export class Minimap implements UIObject {
       zoom: params.camera.zoom * initialZoom,
     };
     marbles.forEach((marble) => {
-      marble.render(this.ctx, 1, false, true, undefined, viewPort, params.theme);
+      marble.render(this.ctx, 1, false, true, viewPort, params.theme);
     });
   }
 }

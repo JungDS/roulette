@@ -15,7 +15,8 @@ import { RankRenderer } from './rankRenderer';
 import { type RenderResolution, RouletteRenderer } from './rouletteRenderer';
 import { SkillEffect } from './skillEffect';
 import { BreakEffect, GravityWellEffect, LightningEffect, SwapEffect, WarpEffect } from './skillEffects';
-import { SkillFeed } from './skillFeed';
+import { DEFAULT_TOP, SkillFeed } from './skillFeed';
+import { TITLE_BANNER_SPACE, TitleBanner } from './titleBanner';
 import type { ColorTheme } from './types/ColorTheme';
 import type { MouseEventHandlerName, MouseEventName } from './types/mouseEvents.type';
 import type { UIObject } from './UIObject';
@@ -85,6 +86,7 @@ export class Roulette extends EventTarget {
   private _catchUp!: CatchUpSkills;
   private _catchUpActive = false;
   private _skillFeed = new SkillFeed();
+  private _titleBanner = new TitleBanner();
 
   private _isReady: boolean = false;
   protected fastForwarder!: FastForwader;
@@ -125,7 +127,6 @@ export class Roulette extends EventTarget {
     }
     if (obj.onMessage) {
       obj.onMessage((msg) => {
-        console.log('onMessage', msg);
         this.dispatchEvent(new CustomEvent('message', { detail: msg }));
       });
     }
@@ -432,6 +433,7 @@ export class Roulette extends EventTarget {
     this.addUiObject(minimap);
     this.fastForwarder = this.createFastForwader();
     this.addUiObject(this.fastForwarder);
+    this.addUiObject(this._titleBanner);
     this.addUiObject(this._skillFeed);
     this._stage = stages[0];
     this._loadMap();
@@ -670,6 +672,22 @@ export class Roulette extends EventTarget {
         title: stage.title,
       };
     });
+  }
+
+  /** 화면 위쪽에 보여 줄 추첨 제목. 빈 문자열이면 보이지 않는다 */
+  public setTitle(title: string) {
+    this._titleBanner.text = title;
+    this._skillFeed.top = title ? TITLE_BANNER_SPACE + DEFAULT_TOP : DEFAULT_TOP;
+  }
+
+  /** 여러 명이 뽑혔을 때 캔버스 가운데에 당첨자 목록을 띄울지. 결과를 따로 보여 주는 추첨에서는 끈다 */
+  public setWinnerListVisible(visible: boolean) {
+    this._renderer.showWinnerList = visible;
+  }
+
+  /** 화면 아래쪽을 가리는 설정 창의 높이 (CSS 픽셀). 당첨 표시가 가려지지 않게 그만큼 올려 그린다 */
+  public setBottomInset(cssPixels: number) {
+    this._renderer.bottomInset = Math.max(0, cssPixels) * this._renderer.sizeFactor;
   }
 
   public getCurrentMap() {

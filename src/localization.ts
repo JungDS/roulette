@@ -41,10 +41,7 @@ function setLocale(newLocale: string) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('localization loaded');
-  const browserLocale = getBrowserLocale();
-  console.log('detected locale: ', browserLocale);
-  setLocale(browserLocale);
+  setLocale(getBrowserLocale());
 });
 
 /** 요소가 아닌 문자열(confirm 등) 번역. 번역이 없으면 원문 */

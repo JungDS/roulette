@@ -125,7 +125,6 @@ export class Marble {
     zoom: number,
     outline: boolean,
     isMinimap: boolean = false,
-    skin: CanvasImageSource | undefined,
     viewPort: { x: number; y: number; w: number; h: number; zoom: number },
     theme: ColorTheme
   ) {
@@ -137,12 +136,11 @@ export class Marble {
     const viewPortTop = viewPort.y - viewPortHh;
     const viewPortBottom = viewPort.y + viewPortHh;
     const halfSize = this.size / 2;
-    const isOutsideView = (
+    const isOutsideView =
       this.x + halfSize < viewPortLeft ||
       this.x - halfSize > viewPortRight ||
       this.y + halfSize < viewPortTop ||
-      this.y - halfSize > viewPortBottom
-    );
+      this.y - halfSize > viewPortBottom;
     if (!isMinimap && isOutsideView) {
       return;
     }
@@ -150,7 +148,7 @@ export class Marble {
     if (isMinimap) {
       this._renderMinimap(ctx);
     } else {
-      this._renderNormal(ctx, zoom, outline, skin);
+      this._renderNormal(ctx, zoom, outline);
     }
     ctx.setTransform(transform);
   }
@@ -166,7 +164,7 @@ export class Marble {
     ctx.fill();
   }
 
-  private _renderNormal(ctx: CanvasRenderingContext2D, zoom: number, outline: boolean, skin?: CanvasImageSource) {
+  private _renderNormal(ctx: CanvasRenderingContext2D, zoom: number, outline: boolean) {
     const hs = this.size / 2;
     const theme = this.theme;
     const lightness = theme.marbleLightness + 25 * Math.min(1, this.impact / 500);
@@ -184,24 +182,16 @@ export class Marble {
 
     ctx.fillStyle = `hsl(${this.hue} ${theme.marbleSaturation}% ${lightness}%)`;
 
-    if (skin) {
-      transformGuard(ctx, () => {
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.angle);
-        ctx.drawImage(skin, -hs, -hs, hs * 2, hs * 2);
-      });
-    } else {
-      this._drawMarbleBody(ctx, false);
-      if (theme.light) {
-        // 짙은 테두리와 반사광으로 유리구슬처럼 보이게 한다
-        ctx.strokeStyle = `hsl(${this.hue} ${theme.marbleSaturation}% ${lightness - 26}%)`;
-        ctx.lineWidth = 1.5 / zoom;
-        ctx.stroke();
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.62)';
-        ctx.beginPath();
-        ctx.ellipse(this.x - hs * 0.32, this.y - hs * 0.36, hs * 0.34, hs * 0.2, -0.6, 0, Math.PI * 2);
-        ctx.fill();
-      }
+    this._drawMarbleBody(ctx, false);
+    if (theme.light) {
+      // 짙은 테두리와 반사광으로 유리구슬처럼 보이게 한다
+      ctx.strokeStyle = `hsl(${this.hue} ${theme.marbleSaturation}% ${lightness - 26}%)`;
+      ctx.lineWidth = 1.5 / zoom;
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.62)';
+      ctx.beginPath();
+      ctx.ellipse(this.x - hs * 0.32, this.y - hs * 0.36, hs * 0.34, hs * 0.2, -0.6, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     if (now < this.stunUntil) this._drawStun(ctx, zoom, now);

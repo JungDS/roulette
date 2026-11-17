@@ -84,7 +84,6 @@ export class Box2dPhysics implements IPhysics {
     this.gravity = new this.Box2D.b2Vec2(0, 10);
     this.world = new this.Box2D.b2World(this.gravity);
     this.scratch = new this.Box2D.b2Vec2(0, 0);
-    console.log('box2d ready');
   }
 
   /** Node 에서 돌릴 때는 wasm 을 불러오는 방법이 달라 따로 바꿔 끼운다 (scripts/simulate.ts) */

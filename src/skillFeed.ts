@@ -14,6 +14,7 @@ const ROW_HEIGHT = 28;
 const ROW_GAP = 5;
 const ICON_SIZE = 18;
 const PADDING = 9;
+export const DEFAULT_TOP = 10;
 
 const SKILL_STYLE: Record<CatchUpSkill, { label: string; color: string }> = {
   turbo: { label: 'Turbo', color: '#f97316' },
@@ -78,6 +79,8 @@ function drawIcon(ctx: CanvasRenderingContext2D, skill: CatchUpSkill) {
 
 export class SkillFeed implements UIObject {
   private entries: Entry[] = [];
+  /** 첫 알림의 위쪽 위치. 추첨 제목이 있으면 그 아래로 내린다 */
+  top = DEFAULT_TOP;
 
   push(event: CatchUpEvent) {
     this.entries.unshift({
@@ -131,7 +134,7 @@ export class SkillFeed implements UIObject {
 
       const rowWidth = PADDING + ICON_SIZE + 6 + textWidth + PADDING;
       const x = (width - rowWidth) / 2;
-      const y = 10 + row * (ROW_HEIGHT + ROW_GAP);
+      const y = this.top + row * (ROW_HEIGHT + ROW_GAP);
       const appear = Math.min(1, entry.age / 150);
       ctx.globalAlpha = appear * Math.min(1, (LIFETIME_MS - entry.age) / FADE_MS);
 

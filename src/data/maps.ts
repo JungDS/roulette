@@ -988,7 +988,7 @@ export const stages: StageDef[] = [
     ],
   },
   {
-    title: 'Pot of greed',
+    title: 'The Pot',
     goalY: 91,
     zoomY: 92.5,
     // 바닥에 빠졌다 양옆으로 올라오는 구슬을 따라가면 화면 아래 빈 곳만 보이니 항아리 전체를 보여 준다
@@ -1305,7 +1305,7 @@ export const stages: StageDef[] = [
     ],
   },
   {
-    title: 'Yoru ni Kakeru',
+    title: 'Night Run',
     goalY: 248,
     zoomY: 234.5,
     entities: [

@@ -102,6 +102,30 @@ div.copyright a {
   &.display {
     mask-image: url('images/display.svg');
   }
+
+  &.title {
+    mask-image: url('images/title.svg');
+  }
+
+  &.dice {
+    mask-image: url('images/dice.svg');
+  }
+
+  &.sliders {
+    mask-image: url('images/sliders.svg');
+  }
+
+  &.roster {
+    mask-image: url('images/roster.svg');
+  }
+
+  &.history {
+    mask-image: url('images/history.svg');
+  }
+
+  &.fullscreen {
+    mask-image: url('images/fullscreen.svg');
+  }
 }
 
 
@@ -133,6 +157,18 @@ div.copyright a {
     margin: 0 0 4px;
     font-size: 12pt;
     color: var(--ink);
+
+    .count-badge {
+      margin-left: 6px;
+      font-size: 10pt;
+      font-weight: normal;
+      color: var(--ink-soft);
+    }
+  }
+
+  // 아래에서 button 에 display 를 주기 때문에 hidden 속성이 먹도록 따로 적는다
+  button[hidden] {
+    display: none;
   }
 
   textarea {
@@ -224,6 +260,34 @@ div.copyright a {
         width: 50%;
         display: flex;
         align-items: center;
+      }
+
+      // 추첨 종류에 따라 하나만 보이는 줄
+      &.row-mode {
+        display: none;
+
+        &.active {
+          display: flex;
+        }
+      }
+
+      .row-hint {
+        font-size: 10pt;
+        color: var(--ink-soft);
+      }
+
+      // 줄에 바로 놓인 입력칸 (제목, 한 줄 자리 수, 모둠 수, 간식 목록)
+      & > input[type=text],
+      & > input[type=number] {
+        flex: 1 1 0;
+        min-width: 0;
+        height: 25px;
+        padding: 0 8px;
+        border: 1px solid var(--panel-border);
+        border-radius: 6px;
+        background: var(--field);
+        color: var(--ink);
+        font-size: 10pt;
       }
 
       // div.right div.row 와 같은 자리에 두어야 display:flex 를 이긴다
@@ -506,6 +570,15 @@ div.copyright a {
         padding-left: 0;
       }
 
+      &.row-mode.active {
+        display: block;
+      }
+
+      & > input[type=text],
+      & > input[type=number] {
+        width: 100%;
+      }
+
       .icon {
         width: 15px;
         height: 15px;
@@ -566,52 +639,340 @@ div.toast {
   }
 }
 
-.link_donation {
+// 결과판: 순서, 자리, 모둠, 간식 결과 (src/resultBoard.ts)
+.board {
+  position: fixed;
+  inset: 0;
+  z-index: 1002;
   display: flex;
-  padding: 1em;
-  width: 100%;
   align-items: center;
   justify-content: center;
-  background: repeating-linear-gradient(
-          45deg,
-          #ffaa00,
-          #ffaa00 20px,
-          #222222 20px,
-          #222222 40px
-  );
-  color: white;
-  font-size: 1.5em;
-  font-weight: bold;
-  border-radius: .5em;
-  margin-bottom: 1em;
-  text-decoration: none;
-  text-shadow: -2px 0px black, 0px 2px black, 2px 0px black, 0px -2px black;
-}
+  padding: 24px;
+  background: rgba(28, 36, 64, 0.35);
 
-
-.shop-button {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  padding: .2em .4em .4em .4em;
-  margin: 0 auto;
-  width: fit-content;
-
-  color: white;
-  font-size: 32px;
-  line-height: 48px;
-  font-weight: bold;
-  text-decoration: none;
-
-  img {
-    width: 48px;
-    height: 48px;
-    margin-right: .2em;
-    margin-bottom: -4px;
+  &[hidden] {
+    display: none;
   }
 
-  background-color: #0077ff;
-  border: 2px solid black;
-  border-radius: 10px;
+  .board-card {
+    display: flex;
+    flex-direction: column;
+    min-width: min(360px, 100%);
+    max-width: min(1100px, 100%);
+    max-height: 100%;
+    border-radius: 18px;
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 20px 60px rgba(28, 36, 64, 0.35);
+    overflow: hidden;
+  }
+
+  .board-header {
+    padding: 18px 28px 6px;
+    text-align: center;
+
+    h2 {
+      margin: 0;
+      font-size: 30px;
+    }
+
+    p {
+      margin: 4px 0 0;
+      color: var(--ink-soft);
+    }
+  }
+
+  .board-body {
+    padding: 14px 28px;
+    overflow: auto;
+  }
+
+  .board-actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 28px 20px;
+
+    button {
+      min-width: 110px;
+      padding: 9px 16px;
+      border: none;
+      border-radius: 10px;
+      background: var(--chip);
+      color: var(--ink);
+      font-size: 12pt;
+      cursor: pointer;
+
+      &.primary {
+        background: var(--accent);
+        color: #fefefe;
+        font-weight: bold;
+      }
+    }
+  }
+
+  // 순서, 간식: 번호가 붙은 목록. 사람이 많으면 여러 단으로 나뉜다
+  .board-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    column-width: 260px;
+    column-gap: 28px;
+
+    li {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 5px 0;
+      break-inside: avoid;
+      font-size: 24px;
+    }
+
+    .rank {
+      flex: 0 0 2.2em;
+      text-align: right;
+      color: var(--ink-soft);
+      font-size: 0.75em;
+    }
+
+    .name {
+      font-weight: bold;
+    }
+
+    .note {
+      margin-left: auto;
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fefefe;
+      font-size: 0.7em;
+      white-space: nowrap;
+    }
+  }
+
+  // 자리 배치: 위쪽이 칠판(앞)
+  .board-front {
+    margin-bottom: 14px;
+    padding: 6px;
+    border-radius: 8px;
+    background: var(--ink);
+    color: #fefefe;
+    text-align: center;
+    font-size: 11pt;
+  }
+
+  .board-seats {
+    display: grid;
+    gap: 8px;
+  }
+
+  .seat {
+    min-width: 76px;
+    padding: 10px 6px;
+    border: 2px solid var(--panel-border);
+    border-radius: 10px;
+    background: var(--field);
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+
+    small {
+      display: block;
+      color: var(--ink-soft);
+      font-size: 11px;
+      font-weight: normal;
+    }
+
+    &.empty {
+      opacity: 0.35;
+    }
+  }
+
+  // 모둠 나누기
+  .board-teams {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .team {
+    min-width: 150px;
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    overflow: hidden;
+
+    h3 {
+      margin: 0;
+      padding: 6px 10px;
+      background: var(--accent);
+      color: #fefefe;
+      text-align: center;
+      font-size: 16px;
+    }
+
+    ul {
+      margin: 0;
+      padding: 8px 14px 10px;
+      list-style: none;
+      font-size: 20px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    li {
+      padding: 2px 0;
+    }
+  }
+}
+
+// 명단 창, 기록 창
+dialog.sheet {
+  width: 480px;
+  max-width: calc(100vw - 32px);
+  max-height: 80vh;
+  padding: 0;
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 16px 48px rgba(28, 36, 64, 0.3);
+  overflow: hidden;
+
+  &::backdrop {
+    background: rgba(28, 36, 64, 0.35);
+  }
+
+  .sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--field);
+    border-bottom: 1px solid var(--panel-border);
+
+    h2 {
+      margin: 0;
+      font-size: 14pt;
+    }
+  }
+
+  .sheet-body {
+    max-height: calc(80vh - 52px);
+    padding: 12px 14px 14px;
+    overflow-y: auto;
+  }
+
+  button {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 6px;
+    background: var(--ink);
+    color: #fefefe;
+    font-size: 10pt;
+    cursor: pointer;
+
+    &.danger {
+      background: var(--danger);
+    }
+
+    &.ghost {
+      background: transparent;
+      color: var(--ink-soft);
+    }
+  }
+
+  .sheet-close {
+    background: transparent;
+    color: var(--ink);
+    font-size: 14pt;
+    padding: 0 6px;
+  }
+
+  .sheet-row {
+    display: flex;
+    gap: 6px;
+
+    input {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 5px 8px;
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      background: var(--field);
+      color: var(--ink);
+      font-size: 11pt;
+    }
+  }
+
+  .sheet-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 10px 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      background: var(--field);
+    }
+
+    .grow {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+
+    .main {
+      font-weight: bold;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sub {
+      color: var(--ink-soft);
+      font-size: 9pt;
+    }
+
+    .lines {
+      margin: 4px 0 0;
+      font-size: 10pt;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .sheet-empty {
+    margin: 14px 0;
+    color: var(--ink-soft);
+    text-align: center;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  .sheet-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sheet-hint {
+    margin: 4px 0 10px;
+    color: var(--ink-soft);
+    font-size: 9pt;
+  }
+
+  hr {
+    margin: 12px 0;
+    border: none;
+    border-top: 1px solid var(--panel-border);
+  }
 }

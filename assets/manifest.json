@@ -1,7 +1,7 @@
 {
-  "name": "Marble roulette",
-  "short_name": "MR",
-  "id": "lazygyu.marble-roulette",
+  "name": "부산반 룰렛",
+  "short_name": "부산반 룰렛",
+  "id": "busanban-roulette",
   "icons": [
     {
       "src": "android-icon-36x36.png",

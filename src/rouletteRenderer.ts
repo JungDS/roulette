@@ -101,12 +101,15 @@ export class RouletteRenderer {
   /** high/ultra 에서 논리 1 = 물리 픽셀 몇 개. default 에서는 씬 캔버스에 1:1 로 그리므로 1 */
   protected _pixelScale = 1;
 
-  protected _images: { [key: string]: HTMLImageElement } = {};
   protected _theme: ColorTheme = Themes.light;
   /** 맵마다 배경 그라데이션 정보를 한 번만 만든다 */
   private _backgroundStops = new WeakMap<StageDef, { at: number; color: string }[]>();
   private _resultCloseRect: Rect | null = null;
   private _resultPopupClosed = false;
+  /** 여러 명이 뽑혔을 때 화면 가운데에 당첨자 목록을 띄울지. 결과를 따로 보여 주는 추첨에서는 끈다 */
+  public showWinnerList = true;
+  /** 화면 아래쪽을 가리는 것(설정 창) 의 높이 (논리 좌표). 당첨 표시를 그만큼 올려 그린다 */
+  public bottomInset = 0;
   private _lastResult: Marble[] | null = null;
 
   get width() {
@@ -140,8 +143,6 @@ export class RouletteRenderer {
   }
 
   async init() {
-    await this._load();
-
     this._canvas = document.createElement('canvas');
     this._canvas.width = canvasWidth;
     this._canvas.height = canvasHeight;
@@ -205,45 +206,6 @@ export class RouletteRenderer {
     // 씬 캔버스는 쓰지 않으므로 메모리만 돌려준다
     setCanvasSize(this._sceneCanvas, 1, 1);
     this.ctx = this._displayCtx;
-  }
-
-  private async _loadImage(url: string): Promise<HTMLImageElement> {
-    return new Promise((rs) => {
-      const img = new Image();
-      img.addEventListener('load', () => {
-        rs(img);
-      });
-      img.src = url;
-    });
-  }
-
-  private async _load(): Promise<void> {
-    const loadPromises = [
-      { name: '챔루', imgUrl: new URL('../assets/images/chamru.png', import.meta.url) },
-      { name: '쿠빈', imgUrl: new URL('../assets/images/kubin.png', import.meta.url) },
-      { name: '꽉변', imgUrl: new URL('../assets/images/kkwak.png', import.meta.url) },
-      { name: '꽉변호사', imgUrl: new URL('../assets/images/kkwak.png', import.meta.url) },
-      { name: '꽉 변호사', imgUrl: new URL('../assets/images/kkwak.png', import.meta.url) },
-      { name: '주누피', imgUrl: new URL('../assets/images/junyoop.png', import.meta.url) },
-      { name: '왈도쿤', imgUrl: new URL('../assets/images/waldokun.png', import.meta.url) },
-    ].map(({ name, imgUrl }) => {
-      return (async () => {
-        this._images[name] = await this._loadImage(imgUrl.toString());
-      })();
-    });
-
-    loadPromises.push(
-      (async () => {
-        await this._loadImage(new URL('../assets/images/ff.svg', import.meta.url).toString());
-      })()
-    );
-
-    await Promise.all(loadPromises);
-  }
-
-  /** 이름에 딸린 구슬 그림 (번들에 든 그림만 쓴다) */
-  private getMarbleImage(name: string): CanvasImageSource | undefined {
-    return this._images[name];
   }
 
   protected onBeforeEntities(): void {}
@@ -377,7 +339,6 @@ export class RouletteRenderer {
         camera.zoom * initialZoom,
         i >= firstIndex && i <= lastIndex,
         false,
-        this.getMarbleImage(marble.name),
         viewPort,
         this._theme
       );
@@ -396,7 +357,7 @@ export class RouletteRenderer {
     // 1명이면 기존 하단 Winner 표시, 여러명이면 화면 중앙 당첨자 목록 팝업
     if (result.length === 1) {
       this.renderWinner(result[0], params.theme);
-    } else if (!this._resultPopupClosed) {
+    } else if (this.showWinnerList && !this._resultPopupClosed) {
       this.renderWinnerList(result, params);
     }
   }
@@ -432,13 +393,13 @@ export class RouletteRenderer {
 
     // 확정 전에는 골인한 당첨자만, 확정 후에는 최종 명단(조기 확정분 포함)을 쓴다
     const confirmed = result ?? winners.slice(start, end + 1);
-    const header = `Winners ${confirmed.length} / ${end - start + 1}`;
+    const header = `${translate('Confirmed')} ${confirmed.length} / ${end - start + 1}`;
 
     // 화면을 넘기면 오래된 쪽을 접는다. 전체 명단은 어차피 중앙 팝업에서 보여준다
     const maxRows = Math.max(1, Math.floor((h * 0.55) / lineHeight) - 2);
     const hidden = Math.max(0, confirmed.length - maxRows);
     const shown = confirmed.slice(hidden);
-    const foldLabel = `+${hidden} more`;
+    const foldLabel = translate('+{n} more').replace('{n}', String(hidden));
 
     ctx.save();
 
@@ -541,7 +502,7 @@ export class RouletteRenderer {
     ctx.textAlign = 'center';
     ctx.fillStyle = theme.winnerText;
     ctx.font = `bold ${lineHeight * 1.1}px sans-serif`;
-    ctx.fillText(`Winners (${winners.length})`, w / 2, panelY + titleHeight / 2);
+    ctx.fillText(`${translate('Winners')} (${winners.length})`, w / 2, panelY + titleHeight / 2);
 
     // 버튼 중심을 팝업 우상단 꼭지점에 맞춰 걸쳐놓는다. 뒤가 비치지 않게 불투명하게 채우되,
     // 검정으로 채우면 다크 테마에서 배경과 같아져 버튼으로 안 보이므로 대비되는 색을 쓴다
@@ -575,43 +536,34 @@ export class RouletteRenderer {
   }
 
   private renderWinner(winner: Marble, theme: ColorTheme) {
+    // 설정 창에 가리지 않게 그만큼 위에 그린다 (화면의 절반 넘게는 올리지 않는다)
+    const bottom = this.height - Math.min(this.bottomInset, this.height * 0.5);
     this.ctx.save();
     this.ctx.fillStyle = theme.winnerBackground;
-    this.ctx.fillRect(this.width / 2, this.height - winnerAreaHeight, this.width / 2, winnerAreaHeight);
+    this.ctx.fillRect(this.width / 2, bottom - winnerAreaHeight, this.width / 2, winnerAreaHeight);
     if (theme.light) {
       this.ctx.fillStyle = PROGRESS_ACCENT;
-      this.ctx.fillRect(this.width / 2, this.height - winnerAreaHeight, this.width / 2, 4);
+      this.ctx.fillRect(this.width / 2, bottom - winnerAreaHeight, this.width / 2, 4);
     }
 
     // Draw marble image or colored circle
     const marbleSize = 100;
     const marbleCenterX = this.width - marbleSize / 2 - 20;
-    const marbleCenterY = this.height - winnerAreaHeight / 2;
-    const marbleImage = this.getMarbleImage(winner.name);
+    const marbleCenterY = bottom - winnerAreaHeight / 2;
     const marbleColor = `hsl(${winner.hue} ${theme.marbleSaturation}% ${theme.marbleLightness}%)`;
 
-    if (marbleImage) {
-      this.ctx.drawImage(
-        marbleImage,
-        marbleCenterX - marbleSize / 2,
-        marbleCenterY - marbleSize / 2,
-        marbleSize,
-        marbleSize
-      );
-    } else {
+    this.ctx.beginPath();
+    this.ctx.arc(marbleCenterX, marbleCenterY, marbleSize / 2, 0, Math.PI * 2);
+    this.ctx.fillStyle = marbleColor;
+    this.ctx.fill();
+    if (theme.light) {
+      this.ctx.lineWidth = 3;
+      this.ctx.strokeStyle = `hsl(${winner.hue} ${theme.marbleSaturation}% ${theme.marbleLightness - 24}%)`;
+      this.ctx.stroke();
       this.ctx.beginPath();
-      this.ctx.arc(marbleCenterX, marbleCenterY, marbleSize / 2, 0, Math.PI * 2);
-      this.ctx.fillStyle = marbleColor;
+      this.ctx.ellipse(marbleCenterX - 16, marbleCenterY - 18, 16, 10, -0.6, 0, Math.PI * 2);
+      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
       this.ctx.fill();
-      if (theme.light) {
-        this.ctx.lineWidth = 3;
-        this.ctx.strokeStyle = `hsl(${winner.hue} ${theme.marbleSaturation}% ${theme.marbleLightness - 24}%)`;
-        this.ctx.stroke();
-        this.ctx.beginPath();
-        this.ctx.ellipse(marbleCenterX - 16, marbleCenterY - 18, 16, 10, -0.6, 0, Math.PI * 2);
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-        this.ctx.fill();
-      }
     }
 
     this.ctx.fillStyle = theme.winnerText;
@@ -623,16 +575,16 @@ export class RouletteRenderer {
     this.ctx.lineWidth = theme.light ? 6 : 4;
     const textRightX = marbleCenterX - marbleSize / 2 - 20;
     if (theme.winnerOutline) {
-      this.ctx.strokeText('Winner', textRightX, this.height - 120 + WINNER_TEXT_OFFSET);
+      this.ctx.strokeText(translate('Winner'), textRightX, bottom - 120 + WINNER_TEXT_OFFSET);
     }
 
-    this.ctx.fillText('Winner', textRightX, this.height - 120 + WINNER_TEXT_OFFSET);
+    this.ctx.fillText(translate('Winner'), textRightX, bottom - 120 + WINNER_TEXT_OFFSET);
     this.ctx.font = 'bold 72px sans-serif';
     this.ctx.fillStyle = theme.light ? `hsl(${winner.hue} ${theme.marbleSaturation}% 38%)` : marbleColor;
     if (theme.winnerOutline) {
-      this.ctx.strokeText(winner.name, textRightX, this.height - 55 + WINNER_TEXT_OFFSET);
+      this.ctx.strokeText(winner.name, textRightX, bottom - 55 + WINNER_TEXT_OFFSET);
     }
-    this.ctx.fillText(winner.name, textRightX, this.height - 55 + WINNER_TEXT_OFFSET);
+    this.ctx.fillText(winner.name, textRightX, bottom - 55 + WINNER_TEXT_OFFSET);
     this.ctx.restore();
   }
 }

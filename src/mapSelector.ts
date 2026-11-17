@@ -3,24 +3,11 @@
 import { stages } from './data/maps';
 import { translate } from './localization';
 import type { Roulette } from './roulette';
-
-const SELECTED_MAP_STORAGE_KEY = 'mbr_selected_map';
+import { load, save } from './storage';
 
 function loadSelection(): number | null {
-  try {
-    const saved = localStorage.getItem(SELECTED_MAP_STORAGE_KEY);
-    return saved === null ? null : Number(saved);
-  } catch {
-    return null;
-  }
-}
-
-function saveSelection(index: number) {
-  try {
-    localStorage.setItem(SELECTED_MAP_STORAGE_KEY, String(index));
-  } catch {
-    // 저장하지 못하면 다음 방문에 첫 맵으로 돌아갈 뿐이다
-  }
+  const saved = load('map');
+  return saved === null ? null : Number(saved);
 }
 
 /**
@@ -50,7 +37,7 @@ export function initMapSelector(roulette: Roulette, onMapChange: () => void) {
 
   select.addEventListener('change', () => {
     const index = Number(select.value);
-    if (apply(index)) saveSelection(index);
+    if (apply(index)) save('map', String(index));
   });
 
   // 처음 그리기: 기억해 둔 맵이 있으면 그 맵으로

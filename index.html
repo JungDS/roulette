@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
@@ -13,10 +13,10 @@
   -->
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'">
-  <!-- 바깥 링크를 눌러도 이 페이지의 주소(이름이 담긴 ?names= 포함) 가 넘어가지 않게 한다 -->
+  <!-- 이 페이지의 주소가 다른 곳으로 넘어가지 않게 한다 (바깥으로 가는 링크는 두지 않았지만, 혹시 생기더라도) -->
   <meta name="referrer" content="no-referrer">
 
-  <title>Marble Roulette 마블룰렛</title>
+  <title>부산반 룰렛</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="apple-touch-icon" sizes="57x57" href="assets/apple-icon-57x57.png">
   <link rel="apple-touch-icon" sizes="60x60" href="assets/apple-icon-60x60.png">
@@ -37,16 +37,16 @@
   <meta name="msapplication-TileImage" content="assets/ms-icon-144x144.png">
   <meta name="theme-color" content="#f3f6fc">
 
-  <meta name="description" content="구슬을 굴려 당첨자를 뽑는 추첨기">
-  <meta property="og:title" content="Marble Roulette">
-  <meta property="og:description" content="구슬을 굴려 당첨자를 뽑는 추첨기">
+  <meta name="description" content="구슬 경주로 간식, 자리, 모둠, 순서를 정하는 강의실용 추첨기">
+  <meta property="og:title" content="부산반 룰렛">
+  <meta property="og:description" content="구슬 경주로 간식, 자리, 모둠, 순서를 정하는 강의실용 추첨기">
   <meta property="og:type" content="website">
 
   <link rel='stylesheet' href='assets/style.scss' />
 </head>
 <body>
 <script type="module" src="./src/index.ts"></script>
-<h1 class="sr-only">Marble Roulette™ 마블 룰렛™ - 랜덤 추첨기</h1>
+<h1 class="sr-only">부산반 룰렛 - 구슬 경주 추첨기</h1>
 <div id="settings" class="settings">
   <div class="right">
     <button id="btnToggleSettings" class="btn-toggle-settings">
@@ -54,6 +54,75 @@
       <i class="toggle-arrow">▲</i>
     </button>
     <div class="collapsible-rows collapsed">
+      <div class="row">
+        <label for="in_title">
+          <i class="icon title"></i>
+          <span data-trans>Title</span>
+        </label>
+        <input type="text" id="in_title" maxlength="40" placeholder="e.g. Today's snack" data-trans="placeholder" />
+      </div>
+      <div class="row">
+        <label for="sltMode">
+          <i class="icon dice"></i>
+          <span data-trans>Draw type</span>
+        </label>
+        <select id="sltMode">
+          <option value="winner" data-trans>Pick winners</option>
+          <option value="order" data-trans>Decide an order</option>
+          <option value="seat" data-trans>Assign seats</option>
+          <option value="team" data-trans>Split into teams</option>
+          <option value="prize" data-trans>Hand out snacks</option>
+        </select>
+      </div>
+      <!-- 추첨 종류에 따라 아래 줄 가운데 하나만 보인다 -->
+      <div class="row row-mode" data-mode="winner">
+        <label>
+          <i class="icon trophy"></i>
+          <span data-trans>The winner is</span>
+        </label>
+        <div class="btn-group">
+          <button class="btn-winner btn-first-winner active" data-trans>First</button>
+          <button class="btn-winner btn-last-winner" data-trans>Last</button>
+          <input type="number" id="in_winningRank" value="1" min="1" />
+          <button class="btn-winner btn-multi-winner" data-trans>Multiple</button>
+        </div>
+      </div>
+      <div class="row row-range">
+        <label></label>
+        <div class="btn-group range-group">
+          <input type="number" id="in_rangeStart" value="1" min="1" />
+          <span class="range-sep">~</span>
+          <input type="number" id="in_rangeEnd" value="3" min="1" />
+        </div>
+      </div>
+      <div class="row row-mode" data-mode="order">
+        <label>
+          <i class="icon sliders"></i>
+          <span data-trans>Order</span>
+        </label>
+        <span class="row-hint" data-trans>Everyone gets a place, first to last</span>
+      </div>
+      <div class="row row-mode" data-mode="seat">
+        <label for="in_columns">
+          <i class="icon sliders"></i>
+          <span data-trans>Seats per row</span>
+        </label>
+        <input type="number" id="in_columns" value="6" min="1" max="20" />
+      </div>
+      <div class="row row-mode" data-mode="team">
+        <label for="in_teams">
+          <i class="icon sliders"></i>
+          <span data-trans>Number of teams</span>
+        </label>
+        <input type="number" id="in_teams" value="4" min="2" max="20" />
+      </div>
+      <div class="row row-mode" data-mode="prize">
+        <label for="in_prizes">
+          <i class="icon sliders"></i>
+          <span data-trans>Snack list</span>
+        </label>
+        <input type="text" id="in_prizes" maxlength="300" placeholder="Choco pie*3, Candy*5" data-trans="placeholder" />
+      </div>
       <div class="row">
         <label for='sltMap'>
           <i class="icon map"></i>
@@ -78,26 +147,6 @@
         </div>
       </div>
       <div class="row">
-        <label>
-          <i class="icon trophy"></i>
-          <span data-trans>The winner is</span>
-        </label>
-        <div class="btn-group">
-          <button class="btn-winner btn-first-winner active" data-trans>First</button>
-          <button class="btn-winner btn-last-winner" data-trans>Last</button>
-          <input type="number" id="in_winningRank" value="1" min="1" />
-          <button class="btn-winner btn-multi-winner" data-trans>Multiple</button>
-        </div>
-      </div>
-      <div class="row row-range">
-        <label></label>
-        <div class="btn-group range-group">
-          <input type="number" id="in_rangeStart" value="1" min="1" />
-          <span class="range-sep">~</span>
-          <input type="number" id="in_rangeEnd" value="3" min="1" />
-        </div>
-      </div>
-      <div class="row">
         <label title="Sharper rendering. Ultra may be heavy on 4K screens, especially while recording." data-trans="title">
           <i class="icon display"></i>
           <span data-trans>Resolution</span>
@@ -111,13 +160,28 @@
     </div>
   </div>
   <div class="left">
-    <h3 data-trans>Enter names below</h3>
+    <h3>
+      <span data-trans>Enter names below</span>
+      <span id="nameCount" class="count-badge"></span>
+    </h3>
     <textarea id="in_names" placeholder="Input names separated by commas or line feed here" data-trans="placeholder">수박*2,키위*2,귤*2</textarea>
     <div class="actions">
-      <button id="btnNotice">
+      <button id="btnNotice" title="Notice" data-trans="title">
         <i class="icon megaphone"></i>
       </button>
+      <button id="btnRoster" title="Saved lists" data-trans="title">
+        <i class="icon roster"></i>
+      </button>
+      <button id="btnHistory" title="Draw history" data-trans="title">
+        <i class="icon history"></i>
+      </button>
+      <button id="btnFullscreen" title="Full screen" data-trans="title">
+        <i class="icon fullscreen"></i>
+      </button>
       <div class="sep"></div>
+      <button id="btnDropWinners" hidden>
+        <span data-trans>Remove winners</span>
+      </button>
       <button id="btnShuffle">
         <i class="icon shuffle"></i>
         <span data-trans>Shuffle</span>
@@ -129,31 +193,81 @@
     </div>
   </div>
 </div>
+
+<!-- 결과판: 순서, 자리, 모둠, 간식 결과를 크게 보여 준다 -->
+<div id="resultBoard" class="board" hidden>
+  <div class="board-card">
+    <div class="board-header">
+      <h2 id="boardTitle"></h2>
+      <p id="boardSubtitle"></p>
+    </div>
+    <div id="boardBody" class="board-body"></div>
+    <div class="board-actions">
+      <button id="btnBoardCopy" data-trans>Copy</button>
+      <button id="btnBoardClose" class="primary" data-trans>Close</button>
+    </div>
+  </div>
+</div>
+
+<dialog id="dlgRoster" class="sheet">
+  <div class="sheet-header">
+    <h2 data-trans>Saved lists</h2>
+    <button class="sheet-close" data-close title="Close" data-trans="title">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div class="sheet-row">
+      <input type="text" id="in_rosterName" maxlength="30" placeholder="List name (e.g. Whole class)" data-trans="placeholder" />
+      <button id="btnSaveRoster" data-trans>Save current names</button>
+    </div>
+    <ul id="rosterList" class="sheet-list"></ul>
+    <p id="rosterEmpty" class="sheet-empty" data-trans>No saved lists yet</p>
+    <hr />
+    <label class="sheet-check">
+      <input type="checkbox" id="chkPersist" checked />
+      <span data-trans>Keep names, lists and history in this browser</span>
+    </label>
+    <p class="sheet-hint" data-trans>Nothing is sent anywhere. Turn this off on a shared computer.</p>
+    <button id="btnClearAll" class="danger" data-trans>Erase everything saved here</button>
+  </div>
+</dialog>
+
+<dialog id="dlgHistory" class="sheet">
+  <div class="sheet-header">
+    <h2 data-trans>Draw history</h2>
+    <button class="sheet-close" data-close title="Close" data-trans="title">✕</button>
+  </div>
+  <div class="sheet-body">
+    <ul id="historyList" class="sheet-list"></ul>
+    <p id="historyEmpty" class="sheet-empty" data-trans>No draws yet</p>
+    <button id="btnClearHistory" class="danger" data-trans>Erase history</button>
+  </div>
+</dialog>
+
 <div id="notice">
-  <h2>Notice</h2>
+  <h2>부산반 룰렛</h2>
   <div class="notice-body">
-    <h3>밝은 테마 · 새 맵 · 역전 스킬</h3>
+    <h3>구슬 경주로 정하는 강의실 추첨</h3>
     <p>
-      빔 프로젝터나 큰 화면에 띄워도 잘 보이도록 <b>밝은 테마</b>로 다시 그렸습니다.
-      광고는 모두 뺐습니다.
+      설정의 <b>추첨 종류</b>에서 고르세요.
+      당첨자 뽑기, 순서 정하기, 자리 배치, 모둠 나누기, 간식 나누기를 할 수 있습니다.
     </p>
     <p>
-      새 맵 <b>핀볼 오디세이</b>가 기본 맵이 되었습니다.
-      범퍼, 플리퍼, 블랙홀, 젤리 늪, 바람 리프트, 행운의 드럼을 차례로 지나는 긴 코스입니다.
+      <b>명단</b> 버튼으로 반 명단을 저장해 두고 불러올 수 있고,
+      추첨이 끝나면 <b>당첨자 빼기</b>로 뽑힌 사람을 빼고 다시 돌릴 수 있습니다.
     </p>
     <p>
-      "스킬 활성화"를 켜 두면 <b>뒤처진 구슬</b>이 번개 · 터보 · 자리 바꾸기 · 중력장을 무작위로 씁니다.
+      "스킬 활성화"를 켜 두면 뒤처진 구슬이 번개 · 터보 · 자리 바꾸기 · 중력장을 무작위로 씁니다.
       끝까지 순위가 뒤집힐 수 있습니다.
     </p>
     <p>
-      입력한 이름은 <b>이 브라우저에만</b> 저장됩니다. 이 페이지는 다른 서버로 아무것도 보내지 않습니다.
+      입력한 이름과 기록은 <b>이 브라우저에만</b> 저장되고, 다른 서버로는 아무것도 보내지 않습니다.
+      공용 PC 라면 명단 창에서 저장을 끄거나 모두 지울 수 있습니다.
     </p>
   </div>
   <div class="notice-action">
     <button id="closeNotice" data-trans>Close</button>
   </div>
 </div>
-<div class="copyright">&copy; 2022-2026. 마블 룰렛™ by <a href="https://lazygyu.net" target="_blank" rel="noopener noreferrer">lazygyu</a>
-</div>
+<div class="copyright">부산반 룰렛 · <span data-trans>Based on Marble Roulette by lazygyu (MIT License)</span></div>
 </body>
 </html>
