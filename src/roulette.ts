@@ -85,6 +85,9 @@ export class Roulette extends EventTarget {
   /** 역전 스킬 (뒤처진 구슬에게 주는 무작위 스킬). 스킬 옵션이 켜져 있고 경주 중일 때만 돈다 */
   private _catchUp!: CatchUpSkills;
   private _catchUpActive = false;
+  /** 출발한 뒤인지. 당첨자가 정해진 뒤에도 남은 구슬이 다 들어올 때까지 경기는 이어진다 */
+  private _raceStarted = false;
+  private _finishAnnounced = false;
   private _skillFeed = new SkillFeed();
   private _titleBanner = new TitleBanner();
 
@@ -276,11 +279,18 @@ export class Roulette extends EventTarget {
 
     this._updateCatchUp(stage);
     this._checkFinish();
+
+    // 마지막 구슬까지 들어오면 경기가 끝났다고 알린다 (설정 창을 다시 띄우는 데 쓴다)
+    if (this._raceStarted && !this._finishAnnounced && this._marbles.length === 0) {
+      this._finishAnnounced = true;
+      this.dispatchEvent(new CustomEvent('finish'));
+    }
   }
 
   /** 역전 스킬을 돌리고, 터진 스킬을 화면에 알린다 */
   private _updateCatchUp(stage: StageDef) {
-    const shouldRun = this._isRunning && options.useSkills;
+    // 당첨자가 정해진 뒤에도 남은 구슬끼리 겨루는 동안은 스킬을 계속 쓴다
+    const shouldRun = this._raceStarted && options.useSkills && this._marbles.length >= 2;
     if (shouldRun !== this._catchUpActive) {
       this._catchUpActive = shouldRun;
       if (shouldRun) this._catchUp.start();
@@ -511,6 +521,7 @@ export class Roulette extends EventTarget {
     this._pendingRemovals = [];
     this._catchUp.clear();
     this._catchUpActive = false;
+    this._raceStarted = false;
     this._skillFeed.clear();
     this.physics.clearMarbles();
     this._result = null;
@@ -520,6 +531,8 @@ export class Roulette extends EventTarget {
 
   public start() {
     this._isRunning = true;
+    this._raceStarted = true;
+    this._finishAnnounced = false;
     this._winnerRange = clipWinnerRange(options.winnerRange, this._marbles.length);
     this._camera.startFollowingMarbles();
 

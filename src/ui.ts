@@ -112,6 +112,7 @@ export function initUi(roulette: Roulette) {
   const rangeStartInput = element<HTMLInputElement>('#in_rangeStart');
   const rangeEndInput = element<HTMLInputElement>('#in_rangeEnd');
   const dropWinnersButton = element<HTMLButtonElement>('#btnDropWinners');
+  const openSettingsButton = element<HTMLButtonElement>('#btnOpenSettings');
 
   let ready = false;
   let winnerType: WinnerType = 'first';
@@ -120,6 +121,19 @@ export function initUi(roulette: Roulette) {
   let lastWinners: string[] = [];
   /** 결과판에 떠 있는 내용을 글자로 옮긴 것 (복사용) */
   let boardText = '';
+
+  /** 설정 창을 띄운다. 당첨 표시가 창 뒤에 가리지 않게 창 높이만큼 올려 그리게 한다 */
+  function showSettings() {
+    openSettingsButton.hidden = true;
+    settings.classList.remove('hide');
+    roulette.setBottomInset(window.innerHeight - settings.getBoundingClientRect().top);
+  }
+
+  function hideSettings() {
+    openSettingsButton.hidden = true;
+    settings.classList.add('hide');
+    roulette.setBottomInset(0);
+  }
 
   function drawOptions(): DrawOptions {
     return {
@@ -272,9 +286,7 @@ export function initUi(roulette: Roulette) {
     dropWinnersButton.hidden = true;
     // 결과판을 따로 띄우는 추첨에서는 캔버스의 당첨자 목록을 끈다
     roulette.setWinnerListVisible(mode === 'winner');
-    // 결과가 나오면 설정 창이 다시 올라온다. 당첨 표시가 그 뒤에 가리지 않게 창 높이만큼 올려 그리게 한다
-    roulette.setBottomInset(window.innerHeight - settings.getBoundingClientRect().top);
-    settings.classList.add('hide');
+    hideSettings();
     roulette.start();
   });
 
@@ -304,8 +316,18 @@ export function initUi(roulette: Roulette) {
       // 캔버스의 당첨자 목록 대신 종류에 맞는 결과판을 띄운다
       showBoard(title || modeName, title ? modeName : '', board);
     }
-    setTimeout(() => settings.classList.remove('hide'), SETTINGS_RETURN_MS);
+    // 남은 구슬이 달리는 동안은 설정 창으로 경기를 가리지 않는다. 작은 버튼만 두고,
+    // 마지막 구슬까지 들어오면('finish') 창을 다시 띄운다
+    setTimeout(() => {
+      if (roulette.getCount() > 0) openSettingsButton.hidden = false;
+      else showSettings();
+    }, SETTINGS_RETURN_MS);
   });
+
+  roulette.addEventListener('finish', () => {
+    setTimeout(showSettings, SETTINGS_RETURN_MS);
+  });
+  openSettingsButton.addEventListener('click', showSettings);
 
   roulette.addEventListener('message', (e) => {
     showToast(String((e as CustomEvent).detail));

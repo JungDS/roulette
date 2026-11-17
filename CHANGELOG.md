@@ -1,5 +1,7 @@
 # Changelog
 
+- 2026-11-18:
+    - After the winner is decided, the rest of the race stays watchable: the winner banner shrinks, the settings panel waits until the last marble finishes, and skills keep firing.
 - 2026-11-17:
     - Renamed to "부산반 룰렛" with its own icons. Third-party character images, a shop banner and icons of unknown origin are gone.
     - Classroom draw types: decide an order, assign seats, split into teams, hand out snacks. Each shows its own result board.

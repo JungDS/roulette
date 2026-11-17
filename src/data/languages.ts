@@ -2,6 +2,7 @@ export const Translations = {
   en: {
     'Enter names below': 'Enter names below',
     Settings: 'Settings',
+    'Open settings': 'Open settings',
     Title: 'Title',
     "e.g. Today's snack": "e.g. Today's snack",
     'Draw type': 'Draw type',
@@ -88,6 +89,7 @@ export const Translations = {
   ko: {
     'Enter names below': '이름을 입력하세요',
     Settings: '설정',
+    'Open settings': '설정 열기',
     Title: '제목',
     "e.g. Today's snack": '예: 오늘의 간식',
     'Draw type': '추첨 종류',
