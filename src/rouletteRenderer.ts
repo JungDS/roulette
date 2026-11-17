@@ -53,6 +53,9 @@ const RESULT_PANEL_MAX_HEIGHT_RATIO = 0.8;
 const RESULT_COLUMN_MAX_WIDTH = 280;
 const PROGRESS_MAX_WIDTH_RATIO = 0.3;
 const PROGRESS_ACCENT = 'rgba(255, 215, 0, 0.8)';
+/** 당첨 표시를 크게 보여 주는 시간. 그 뒤로 남은 구슬이 달리는 동안은 작게 줄여 경기를 가리지 않는다 */
+const RESULT_SPOTLIGHT_MS = 4000;
+const COMPACT_WINNER_HEIGHT = 44;
 /** 배경 점 무늬의 간격과 크기 (월드 단위) */
 const DOT_GAP = 2;
 const DOT_SIZE = 0.13;
@@ -111,6 +114,8 @@ export class RouletteRenderer {
   /** 화면 아래쪽을 가리는 것(설정 창) 의 높이 (논리 좌표). 당첨 표시를 그만큼 올려 그린다 */
   public bottomInset = 0;
   private _lastResult: Marble[] | null = null;
+  /** 지금 결과가 처음 나온 시각 (performance.now) */
+  private _resultAt = 0;
 
   get width() {
     return this._viewWidth;
@@ -351,15 +356,51 @@ export class RouletteRenderer {
     if (result !== this._lastResult) {
       this._lastResult = result;
       this._resultPopupClosed = false;
+      this._resultAt = performance.now();
     }
     this._resultCloseRect = null;
     if (!result) return;
+    // 당첨자가 정해진 뒤에도 남은 구슬은 계속 달린다. 잠깐 크게 보여 준 뒤에는 경기가 보이도록 비켜 주고,
+    // 마지막 구슬까지 들어오면 다시 크게 보여 준다
+    const stillRacing = params.marbles.length > 0 && performance.now() - this._resultAt > RESULT_SPOTLIGHT_MS;
     // 1명이면 기존 하단 Winner 표시, 여러명이면 화면 중앙 당첨자 목록 팝업
     if (result.length === 1) {
-      this.renderWinner(result[0], params.theme);
-    } else if (this.showWinnerList && !this._resultPopupClosed) {
+      if (stillRacing) this.renderCompactWinner(result[0], params.theme);
+      else this.renderWinner(result[0], params.theme);
+    } else if (this.showWinnerList && !this._resultPopupClosed && !stillRacing) {
       this.renderWinnerList(result, params);
     }
+  }
+
+  /** 남은 경기를 가리지 않는 작은 당첨 표시 (오른쪽 아래) */
+  private renderCompactWinner(winner: Marble, theme: ColorTheme) {
+    const ctx = this.ctx;
+    const text = `${translate('Winner')}  ${winner.name}`;
+    const bottom = this.height - Math.min(this.bottomInset, this.height * 0.5) - 10;
+    ctx.save();
+    ctx.font = 'bold 20px sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    const dot = 13;
+    const boxWidth = ctx.measureText(text).width + dot * 2 + 40;
+    const x = this.width - boxWidth - 10;
+    const y = bottom - COMPACT_WINNER_HEIGHT;
+    ctx.beginPath();
+    if (typeof ctx.roundRect === 'function')
+      ctx.roundRect(x, y, boxWidth, COMPACT_WINNER_HEIGHT, COMPACT_WINNER_HEIGHT / 2);
+    else ctx.rect(x, y, boxWidth, COMPACT_WINNER_HEIGHT);
+    ctx.fillStyle = theme.light ? 'rgba(255, 255, 255, 0.94)' : 'rgba(0, 0, 0, 0.7)';
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = PROGRESS_ACCENT;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x + 14 + dot, y + COMPACT_WINNER_HEIGHT / 2, dot, 0, Math.PI * 2);
+    ctx.fillStyle = `hsl(${winner.hue} ${theme.marbleSaturation}% ${theme.marbleLightness}%)`;
+    ctx.fill();
+    ctx.fillStyle = theme.winnerText;
+    ctx.fillText(text, x + 14 + dot * 2 + 8, y + COMPACT_WINNER_HEIGHT / 2 + 1);
+    ctx.restore();
   }
 
   /** 결과 팝업 닫기 버튼을 눌렀는지 */
