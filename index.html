@@ -1,0 +1,227 @@
+<!DOCTYPE html><html lang=ko><meta charset=UTF-8><meta http-equiv=Content-Security-Policy content="default-src 'none'; script-src 'self' 'sha256-vH0AwuKeth2oiXqXo6zpwerv6ugr9GtU3cclnmZHPWQ=' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'"><script type=importmap>{"imports":{"ao29o":"/roulette/Box2D.simd.8f5913cc.js","b21ls":"/roulette/Box2D.b9b16b27.wasm","dRxiZ":"/roulette/Box2D.742de2ae.js","g5g75":"/roulette/ff.7fdc9e82.svg","ikqOI":"/roulette/Box2D.simd.dd31b167.wasm"}}</script><meta http-equiv=X-UA-Compatible content="ie=edge"><meta name=referrer content=no-referrer><title>부산반 룰렛</title><meta name=viewport content="width=device-width, initial-scale=1.0"><link rel=apple-touch-icon sizes=57x57 href=/roulette/apple-icon-57x57.200c4467.png><link rel=apple-touch-icon sizes=60x60 href=/roulette/apple-icon-60x60.d03aaca8.png><link rel=apple-touch-icon sizes=72x72 href=/roulette/apple-icon-72x72.bdaa94a4.png><link rel=apple-touch-icon sizes=76x76 href=/roulette/apple-icon-76x76.12e0bd4d.png><link rel=apple-touch-icon sizes=114x114 href=/roulette/apple-icon-114x114.667c4ae0.png><link rel=apple-touch-icon sizes=120x120 href=/roulette/apple-icon-120x120.c61c7204.png><link rel=apple-touch-icon sizes=144x144 href=/roulette/apple-icon-144x144.4f9aa86f.png><link rel=apple-touch-icon sizes=152x152 href=/roulette/apple-icon-152x152.4c641475.png><link rel=apple-touch-icon sizes=180x180 href=/roulette/apple-icon-180x180.6f043c2e.png><link rel=icon type=image/png sizes=192x192 href=/roulette/android-icon-192x192.279080a9.png><link rel=icon type=image/png sizes=32x32 href=/roulette/favicon-32x32.db5c0b75.png><link rel=icon type=image/png sizes=96x96 href=/roulette/favicon-96x96.89bdaf03.png><link rel=icon type=image/png sizes=16x16 href=/roulette/favicon-16x16.cd1ab760.png><link rel=manifest href=/roulette/assets/manifest.webmanifest><meta name=msapplication-TileColor content=#ffffff><meta name=msapplication-TileImage content=/roulette/ms-icon-144x144.4f9aa86f.png><meta name=theme-color content=#f3f6fc><meta name=description content="구슬 경주로 간식, 자리, 모둠, 순서를 정하는 강의실용 추첨기"><meta property=og:title content="부산반 룰렛"><meta property=og:description content="구슬 경주로 간식, 자리, 모둠, 순서를 정하는 강의실용 추첨기"><meta property=og:type content=website><link rel=stylesheet href=/roulette/roulette.13df43a6.css><body>
+<script type=module src=/roulette/roulette.d9a0d9ed.js></script>
+<h1 class=sr-only>부산반 룰렛 - 구슬 경주 추첨기</h1>
+<div id=settings class=settings>
+  <div class=right>
+    <button id=btnToggleSettings class=btn-toggle-settings>
+      <span data-trans>Settings</span>
+      <i class=toggle-arrow>▲</i>
+    </button>
+    <div class="collapsed collapsible-rows">
+      <div class=row>
+        <label for=in_title>
+          <i class="icon title"></i>
+          <span data-trans>Title</span>
+        </label>
+        <input id=in_title maxlength=40 placeholder="e.g. Today's snack" data-trans=placeholder>
+      </div>
+      <div class=row>
+        <label for=sltMode>
+          <i class="dice icon"></i>
+          <span data-trans>Draw type</span>
+        </label>
+        <select id=sltMode>
+          <option value=winner data-trans>Pick winners</option>
+          <option value=order data-trans>Decide an order</option>
+          <option value=seat data-trans>Assign seats</option>
+          <option value=team data-trans>Split into teams</option>
+          <option value=prize data-trans>Hand out snacks</option>
+        </select>
+      </div>
+      
+      <div class="row row-mode" data-mode=winner>
+        <label>
+          <i class="icon trophy"></i>
+          <span data-trans>The winner is</span>
+        </label>
+        <div class=btn-group>
+          <button class="active btn-first-winner btn-winner" data-trans>First</button>
+          <button class="btn-last-winner btn-winner" data-trans>Last</button>
+          <input type=number id=in_winningRank value=1 min=1>
+          <button class="btn-multi-winner btn-winner" data-trans>Multiple</button>
+        </div>
+      </div>
+      <div class="row row-range">
+        <label></label>
+        <div class="btn-group range-group">
+          <input type=number id=in_rangeStart value=1 min=1>
+          <span class=range-sep>~</span>
+          <input type=number id=in_rangeEnd value=3 min=1>
+        </div>
+      </div>
+      <div class="row row-mode" data-mode=order>
+        <label>
+          <i class="icon sliders"></i>
+          <span data-trans>Order</span>
+        </label>
+        <span class=row-hint data-trans>Everyone gets a place, first to last</span>
+      </div>
+      <div class="row row-mode" data-mode=seat>
+        <label for=in_columns>
+          <i class="icon sliders"></i>
+          <span data-trans>Seats per row</span>
+        </label>
+        <input type=number id=in_columns value=6 min=1 max=20>
+      </div>
+      <div class="row row-mode" data-mode=team>
+        <label for=in_teams>
+          <i class="icon sliders"></i>
+          <span data-trans>Number of teams</span>
+        </label>
+        <input type=number id=in_teams value=4 min=2 max=20>
+      </div>
+      <div class="row row-mode" data-mode=prize>
+        <label for=in_prizes>
+          <i class="icon sliders"></i>
+          <span data-trans>Snack list</span>
+        </label>
+        <input id=in_prizes maxlength=300 placeholder="Choco pie*3, Candy*5" data-trans=placeholder>
+      </div>
+      <div class=row>
+        <label for=sltMap>
+          <i class="icon map"></i>
+          <span data-trans>Map</span>
+        </label>
+        <select id=sltMap></select>
+      </div>
+      <div class="row row-toggles">
+        <div class=toggle-item>
+          <label for=chkAutoRecording>
+            <i class="icon record"></i>
+            <span data-trans>Recording</span>
+          </label>
+          <input type=checkbox id=chkAutoRecording>
+        </div>
+        <div class=toggle-item>
+          <label for=chkSkill>
+            <i class="bomb icon"></i>
+            <span data-trans>Using skills</span>
+          </label>
+          <input type=checkbox id=chkSkill checked>
+        </div>
+      </div>
+      <div class=row>
+        <label title="Sharper rendering. Ultra may be heavy on 4K screens, especially while recording." data-trans=title>
+          <i class="display icon"></i>
+          <span data-trans>Resolution</span>
+        </label>
+        <div class="btn-group resolution-group">
+          <button class=btn-resolution data-resolution=default data-trans>Default</button>
+          <button class=btn-resolution data-resolution=high>High</button>
+          <button class=btn-resolution data-resolution=ultra>Ultra</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class=left>
+    <h3>
+      <span data-trans>Enter names below</span>
+      <span id=nameCount class=count-badge></span>
+    </h3>
+    <textarea id=in_names placeholder="Input names separated by commas or line feed here" data-trans=placeholder>수박*2,키위*2,귤*2</textarea>
+    <div class=actions>
+      <button id=btnNotice title=Notice data-trans=title>
+        <i class="icon megaphone"></i>
+      </button>
+      <button id=btnRoster title="Saved lists" data-trans=title>
+        <i class="icon roster"></i>
+      </button>
+      <button id=btnHistory title="Draw history" data-trans=title>
+        <i class="history icon"></i>
+      </button>
+      <button id=btnFullscreen title="Full screen" data-trans=title>
+        <i class="fullscreen icon"></i>
+      </button>
+      <div class=sep></div>
+      <button id=btnDropWinners hidden>
+        <span data-trans>Remove winners</span>
+      </button>
+      <button id=btnShuffle>
+        <i class="icon shuffle"></i>
+        <span data-trans>Shuffle</span>
+      </button>
+      <button id=btnStart>
+        <i class="icon play"></i>
+        <span data-trans>Start</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<div id=resultBoard class=board hidden>
+  <div class=board-card>
+    <div class=board-header>
+      <h2 id=boardTitle></h2>
+      <p id=boardSubtitle></p>
+    </div>
+    <div id=boardBody class=board-body></div>
+    <div class=board-actions>
+      <button id=btnBoardCopy data-trans>Copy</button>
+      <button id=btnBoardClose class=primary data-trans>Close</button>
+    </div>
+  </div>
+</div>
+
+<dialog id=dlgRoster class=sheet>
+  <div class=sheet-header>
+    <h2 data-trans>Saved lists</h2>
+    <button class=sheet-close data-close title=Close data-trans=title>✕</button>
+  </div>
+  <div class=sheet-body>
+    <div class=sheet-row>
+      <input id=in_rosterName maxlength=30 placeholder="List name (e.g. Whole class)" data-trans=placeholder>
+      <button id=btnSaveRoster data-trans>Save current names</button>
+    </div>
+    <ul id=rosterList class=sheet-list></ul>
+    <p id=rosterEmpty class=sheet-empty data-trans>No saved lists yet</p>
+    <hr>
+    <label class=sheet-check>
+      <input type=checkbox id=chkPersist checked>
+      <span data-trans>Keep names, lists and history in this browser</span>
+    </label>
+    <p class=sheet-hint data-trans>Nothing is sent anywhere. Turn this off on a shared computer.</p>
+    <button id=btnClearAll class=danger data-trans>Erase everything saved here</button>
+  </div>
+</dialog>
+
+<dialog id=dlgHistory class=sheet>
+  <div class=sheet-header>
+    <h2 data-trans>Draw history</h2>
+    <button class=sheet-close data-close title=Close data-trans=title>✕</button>
+  </div>
+  <div class=sheet-body>
+    <ul id=historyList class=sheet-list></ul>
+    <p id=historyEmpty class=sheet-empty data-trans>No draws yet</p>
+    <button id=btnClearHistory class=danger data-trans>Erase history</button>
+  </div>
+</dialog>
+
+<div id=notice>
+  <h2>부산반 룰렛</h2>
+  <div class=notice-body>
+    <h3>구슬 경주로 정하는 강의실 추첨</h3>
+    <p>
+      설정의 <b>추첨 종류</b>에서 고르세요.
+      당첨자 뽑기, 순서 정하기, 자리 배치, 모둠 나누기, 간식 나누기를 할 수 있습니다.
+    </p>
+    <p>
+      <b>명단</b> 버튼으로 반 명단을 저장해 두고 불러올 수 있고,
+      추첨이 끝나면 <b>당첨자 빼기</b>로 뽑힌 사람을 빼고 다시 돌릴 수 있습니다.
+    </p>
+    <p>
+      "스킬 활성화"를 켜 두면 뒤처진 구슬이 번개 · 터보 · 자리 바꾸기 · 중력장을 무작위로 씁니다.
+      끝까지 순위가 뒤집힐 수 있습니다.
+    </p>
+    <p>
+      입력한 이름과 기록은 <b>이 브라우저에만</b> 저장되고, 다른 서버로는 아무것도 보내지 않습니다.
+      공용 PC 라면 명단 창에서 저장을 끄거나 모두 지울 수 있습니다.
+    </p>
+  </div>
+  <div class=notice-action>
+    <button id=closeNotice data-trans>Close</button>
+  </div>
+</div>
+<div class=copyright>부산반 룰렛 · <span data-trans>Based on Marble Roulette by lazygyu (MIT License)</span></div>
+
+
