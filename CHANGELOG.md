@@ -1,5 +1,11 @@
 # Changelog
 
+- 2026-11-17:
+    - Removed all ads.
+    - The bright theme is now the default (made for projectors): filled shapes, shadows, glossy marbles and a restyled UI.
+    - New map elements: flippers, sliding blocks, boosters, slow zones and black holes.
+    - Catch-up skills for trailing marbles: turbo, lightning, swap and gravity well.
+    - A new map "Pinball Odyssey" has been added.
 - 2025-11-13:
     - Optimized the rendering process.
 - 2025-11-10:
