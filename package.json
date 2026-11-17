@@ -14,9 +14,8 @@
   "scripts": {
     "lint": "biome check --fix src/",
     "dev": "parcel index.html --port 1235",
-    "build": "parcel build index.html --public-url /roulette/ && node scripts/build-sw.js",
-    "simulate": "tsx scripts/simulate.ts",
-    "mock-ads": "node scripts/mock-ads.mjs"
+    "build": "parcel build index.html --public-url /roulette/ --no-source-maps && node scripts/seal-html.js",
+    "simulate": "tsx scripts/simulate.ts"
   },
   "dependencies": {
     "box2d-wasm": "^7.0.0"

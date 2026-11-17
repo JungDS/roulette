@@ -1,24 +1,83 @@
 import type { MapEntity } from '../types/MapEntity.type';
-
-export type AdBoard = {
-  x: number;
-  y: number;
-  w?: number;
-  h?: number;
-};
+import { pinballOdyssey } from './pinballOdyssey';
 
 export type StageDef = {
   title: string;
   entities?: MapEntity[];
   goalY: number;
   zoomY: number;
-  adBoards?: AdBoard[];
   /** 순위 계산 보조 정보 (물리에는 영향 없음) */
   progress?: ProgressHints;
   /** 연출 구역. 있으면 zoomY 대신 이 구역들로 줌인과 슬로모션을 건다 */
   zoomZones?: ZoomZone[];
   /** 카메라 구역. 카메라가 주목하는 구슬이 구역 안에 있으면 구슬 대신 구역 전체를 화면에 담는다 (결승 줌인 중에는 쓰지 않는다) */
   cameraZones?: CameraZone[];
+  /** 효과 구역. 벽처럼 부딪히지는 않고 안에 들어온 구슬에 영향을 준다 (부스터, 슬로우, 블랙홀) */
+  zones?: Zone[];
+  /** 배경색. 높이(y) 마다 색을 정해 두면 그 사이를 그라데이션으로 잇는다 (밝은 테마에서만 쓴다) */
+  background?: BackgroundStop[];
+  /** 맵 위에 적는 글자 (구역 이름 등). 물리에는 영향 없음 */
+  labels?: StageLabel[];
+};
+
+/** 힘 구역 (x, y 는 가운데, w, h 는 전체 크기). 안에 있는 구슬을 한 방향으로 민다 */
+export type ForceZone = {
+  type: 'force';
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** 구슬에 더하는 가속도. 중력이 [0, 10] 이므로 [0, -25] 면 위로 떠오른다 */
+  force: [number, number];
+};
+
+/** 슬로우 구역 (x, y 는 가운데, w, h 는 전체 크기). 안에 있는 구슬이 끈적하게 느려진다 */
+export type SlowZone = {
+  type: 'slow';
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** 감속 세기. 클수록 느리다 (가라앉는 속도는 대략 10 / drag) */
+  drag: number;
+};
+
+/** 블랙홀이 삼킨 구슬이 튀어나오는 곳 (화이트홀) */
+export type WarpExit = {
+  x: number;
+  y: number;
+  /** 튀어나오는 속도 */
+  velocity?: [number, number];
+  /** 뽑힐 비중 (기본 1) */
+  weight?: number;
+};
+
+/** 블랙홀: radius 안의 구슬을 끌어당기고, core 안까지 들어오면 삼켜서 exits 중 한 곳으로 무작위로 내보낸다 */
+export type BlackHoleZone = {
+  type: 'blackhole';
+  x: number;
+  y: number;
+  radius: number;
+  core: number;
+  /** 가운데에서 끌어당기는 가속도 (가장자리로 갈수록 0 에 가까워진다) */
+  strength: number;
+  exits: WarpExit[];
+};
+
+export type Zone = ForceZone | SlowZone | BlackHoleZone;
+
+export type BackgroundStop = {
+  y: number;
+  color: string;
+};
+
+export type StageLabel = {
+  x: number;
+  y: number;
+  text: string;
+  /** 글자 높이 (월드 단위) */
+  size: number;
+  color?: string;
 };
 
 /** 연출 구역 (x, y 는 가운데, w, h 는 전체 크기). 가운데로 갈수록 연출이 세진다 */
@@ -48,11 +107,11 @@ export type ProgressHints = {
 };
 
 export const stages: StageDef[] = [
+  pinballOdyssey,
   {
     title: 'Wheel of fortune',
     goalY: 111,
     zoomY: 106.75,
-    adBoards: [{ x: 15.92, y: 104.3, w: 5, h: 1.25 }],
     entities: [
       // polyline
       {
@@ -471,10 +530,6 @@ export const stages: StageDef[] = [
     title: 'BubblePop',
     goalY: 83,
     zoomY: 78,
-    adBoards: [
-      { y: 80.5, x: 10 },
-      { y: 80.5, x: 15.05 },
-    ],
     entities: [
       {
         type: 'static',
@@ -933,10 +988,9 @@ export const stages: StageDef[] = [
     ],
   },
   {
-    title: 'Pot of greed',
+    title: 'The Pot',
     goalY: 91,
     zoomY: 92.5,
-    adBoards: [{ x: 13.0, y: 75.5, w: 9.5, h: 2.375 }],
     // 바닥에 빠졌다 양옆으로 올라오는 구슬을 따라가면 화면 아래 빈 곳만 보이니 항아리 전체를 보여 준다
     cameraZones: [{ x: 13, y: 74, w: 24, h: 28 }],
     zoomZones: [{ x: 13, y: 77, w: 8, h: 10 }],
@@ -1251,13 +1305,9 @@ export const stages: StageDef[] = [
     ],
   },
   {
-    title: 'Yoru ni Kakeru',
+    title: 'Night Run',
     goalY: 248,
     zoomY: 234.5,
-    adBoards: [
-      { x: 11.5, y: 12, w: 16, h: 4 },
-      { x: 11.5, y: 155, w: 16, h: 4 },
-    ],
     entities: [
       {
         position: { x: 2, y: 0 },

@@ -1,5 +1,6 @@
 import { initialZoom } from './data/constants';
 import type { StageDef } from './data/maps';
+import { paintEntityFlat } from './entityPainter';
 import type { RenderParameters } from './rouletteRenderer';
 import type { ColorTheme } from './types/ColorTheme';
 import type { MapEntityState } from './types/MapEntity.type';
@@ -7,10 +8,11 @@ import type { Rect } from './types/rect.type';
 import type { VectorLike } from './types/VectorLike';
 import type { UIObject } from './UIObject';
 import { bound } from './utils/bound.decorator';
+import { paintZonesFlat } from './zonePainter';
 
 /** 미니맵 최대 배율. 맵이 길거나 넓으면 이보다 작아진다 */
 const MINIMAP_SCALE = 4;
-/** 기본으로 보여주는 가로 범위 (공식 맵 크기). 맵 공유마당의 넓은 맵은 장애물이 있는 만큼 넓혀 보여준다 */
+/** 기본으로 보여주는 가로 범위 (기본 맵 크기). 더 넓은 맵은 장애물이 있는 만큼 넓혀 보여준다 */
 const MINIMAP_MIN_X = 0;
 const MINIMAP_UNITS = 26;
 /** 미니맵은 좌측에 세로로 긴 스트립이다. 다른 HUD가 피해가려면 이 값이 필요하다 */
@@ -127,13 +129,14 @@ export class Minimap implements UIObject {
     ctx.fillRect(this.range.minX, 0, units, stage.goalY);
 
     this.ctx.lineWidth = 3 / (params.camera.zoom + initialZoom);
+    if (stage.zones?.length) paintZonesFlat(ctx, stage.zones);
     this.drawEntities(params.entities, params.theme);
     this.drawMarbles(params);
     this.drawViewport(params);
 
     ctx.restore();
     ctx.save();
-    ctx.strokeStyle = 'green';
+    ctx.strokeStyle = params.theme.minimapBorder;
     ctx.lineWidth = 1;
     ctx.strokeRect(this.boundingBox.x, this.boundingBox.y, this.boundingBox.w, this.boundingBox.h);
     ctx.restore();
@@ -152,44 +155,7 @@ export class Minimap implements UIObject {
   }
 
   private drawEntities(entities: MapEntityState[], theme: ColorTheme) {
-    this.ctx.save();
-    entities.forEach((entity) => {
-      this.ctx.save();
-      this.ctx.fillStyle = entity.shape.color ?? theme.entity[entity.shape.type].fill;
-      this.ctx.strokeStyle = entity.shape.color ?? theme.entity[entity.shape.type].outline;
-      this.ctx.translate(entity.x, entity.y);
-      this.ctx.rotate(entity.angle);
-
-      this.ctx.save();
-      const shape = entity.shape;
-      switch (shape.type) {
-        case 'box': {
-          const w = shape.width * 2;
-          const h = shape.height * 2;
-          this.ctx.rotate(shape.rotation);
-          this.ctx.fillRect(-w / 2, -h / 2, w, h);
-          break;
-        }
-        case 'circle':
-          this.ctx.beginPath();
-          this.ctx.arc(0, 0, shape.radius, 0, Math.PI * 2, false);
-          this.ctx.stroke();
-          break;
-        case 'polyline':
-          if (shape.points.length > 0) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(shape.points[0][0], shape.points[0][1]);
-            for (let i = 1; i < shape.points.length; i++) {
-              this.ctx.lineTo(shape.points[i][0], shape.points[i][1]);
-            }
-            this.ctx.stroke();
-          }
-          break;
-      }
-      this.ctx.restore();
-      this.ctx.restore();
-    });
-    this.ctx.restore();
+    for (const entity of entities) paintEntityFlat(this.ctx, entity, theme);
   }
 
   private drawMarbles(params: RenderParameters) {
@@ -202,7 +168,7 @@ export class Minimap implements UIObject {
       zoom: params.camera.zoom * initialZoom,
     };
     marbles.forEach((marble) => {
-      marble.render(this.ctx, 1, false, true, undefined, viewPort, params.theme);
+      marble.render(this.ctx, 1, false, true, viewPort, params.theme);
     });
   }
 }

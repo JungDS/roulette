@@ -31,12 +31,9 @@ function seedRandom(seed: number) {
 
 // Node 의 emscripten 로더가 fetch 로 wasm 경로를 열려다 실패하므로 바이너리를 직접 넘긴다
 class NodePhysics extends Box2dPhysics {
-  async init(): Promise<void> {
+  protected loadBox2D() {
     const wasmBinary = fs.readFileSync(new URL('../node_modules/box2d-wasm/dist/umd/Box2D.simd.wasm', import.meta.url));
-    const self = this as any;
-    self.Box2D = await Box2DFactory({ wasmBinary } as any);
-    self.gravity = new self.Box2D.b2Vec2(0, 10);
-    self.world = new self.Box2D.b2World(self.gravity);
+    return Box2DFactory({ wasmBinary } as any);
   }
 }
 

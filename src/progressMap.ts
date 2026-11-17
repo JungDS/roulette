@@ -10,8 +10,12 @@
 // - 중력: 위로 가는 이동은 회전 장애물이 쓸고 지나가는 곳이나 튕겨 내는 장애물 근처("올라가는 구역") 에서만
 //   보통 비용이고, 그 밖에서는 UP_PENALTY 배 비용이다. 놓치면 돌아 올라와야 하는 바닥이 실제처럼 멀어진다.
 // - 일방통행 선(stage.progress.oneWays): 맵 제작자가 지정한 선. 화살표 반대 방향으로는 넘을 수 없다고 본다.
+// - 왕복 운동하는 장애물(플리퍼, 움직이는 발판) 도 길로 보고, 쓸고 지나가는 곳은 올라가는 구역으로 본다.
+// - 위로 띄우는 힘 구역(바람) 도 올라가는 구역이다.
+// - 블랙홀: 삼켜진 구슬은 화이트홀 중 한 곳으로 나오므로, 블랙홀 가운데의 거리는 화이트홀들의 거리 평균으로 본다
+//   (그쪽이 더 가까울 때만).
 
-import type { OneWayLine, StageDef } from './data/maps';
+import type { BlackHoleZone, OneWayLine, StageDef } from './data/maps';
 import type { MapEntity } from './types/MapEntity.type';
 
 const CELL = 0.25;
@@ -32,6 +36,8 @@ const UP_PENALTY = 10;
 const LIFT_MARGIN = MARBLE_RADIUS + 0.5;
 /** 튕겨 내는 장애물(탄성 1 초과) 표면에서 이 거리 안은 올라갈 수 있다고 본다 */
 const BOUNCE_RANGE = 1.5;
+/** 힘 구역이 이보다 세게 위로 밀면 (중력 10 을 이기면) 올라가는 구역으로 본다 */
+const LIFT_FORCE = -10;
 
 export class ProgressMap {
   readonly cols: number;
@@ -73,10 +79,11 @@ export class ProgressMap {
     this.dist = new Float32Array(this.cols * this.rows).fill(Infinity);
 
     for (const e of entities) this.rasterize(e);
-    this.lift = this.findLiftCells(stage.entities ?? []);
+    this.lift = this.findLiftCells(stage);
     this.oneWays = (stage.progress?.oneWays ?? []).filter((l) => l.from[0] !== l.to[0] || l.from[1] !== l.to[1]);
     this.nearOneWay = this.oneWays.length ? this.markOneWayCells() : null;
-    this.maxDist = this.propagate(stage.goalY);
+    const holes = (stage.zones ?? []).filter((z): z is BlackHoleZone => z.type === 'blackhole' && z.exits.length > 0);
+    this.maxDist = this.propagate(stage.goalY, holes);
   }
 
   private static cache = new WeakMap<StageDef, ProgressMap>();
@@ -179,8 +186,9 @@ export class ProgressMap {
     }
   }
 
-  /** 회전 장애물이 쓸고 지나가는 원, 튕겨 내는 장애물 주변을 올라가는 구역으로 표시한다 */
-  private findLiftCells(all: MapEntity[]): Uint8Array {
+  /** 움직이는 장애물이 쓸고 지나가는 곳, 튕겨 내는 장애물 주변, 위로 띄우는 힘 구역을 올라가는 구역으로 표시한다 */
+  private findLiftCells(stage: StageDef): Uint8Array {
+    const all = stage.entities ?? [];
     const lift = new Uint8Array(this.cols * this.rows);
     const mark = (x0: number, x1: number, y0: number, y1: number, inside: (x: number, y: number) => boolean) => {
       const c0 = Math.max(0, Math.floor((x0 - this.minX) / CELL));
@@ -194,11 +202,25 @@ export class ProgressMap {
       }
     };
     for (const e of all) {
-      if (e.type === 'kinematic' && e.props.angularVelocity !== 0) {
+      if (e.type === 'kinematic' && (e.props.angularVelocity !== 0 || e.motion?.swing !== undefined)) {
         // 물리 몸체는 position 을 중심으로 돈다
         const { x: ox, y: oy } = e.position;
         const reach = Math.max(...reachPoints(e).map(([x, y]) => Math.hypot(x - ox, y - oy))) + LIFT_MARGIN;
         mark(ox - reach, ox + reach, oy - reach, oy + reach, (x, y) => Math.hypot(x - ox, y - oy) <= reach);
+      }
+      if (e.type === 'kinematic' && e.motion?.slide) {
+        // 왕복 이동: 처음 자리와 끝 자리를 함께 덮는 상자
+        const pts = reachPoints(e);
+        const [sx, sy] = e.motion.slide;
+        const xs = [...pts.map((p) => p[0]), ...pts.map((p) => p[0] + sx)];
+        const ys = [...pts.map((p) => p[1]), ...pts.map((p) => p[1] + sy)];
+        mark(
+          Math.min(...xs) - LIFT_MARGIN,
+          Math.max(...xs) + LIFT_MARGIN,
+          Math.min(...ys) - LIFT_MARGIN,
+          Math.max(...ys) + LIFT_MARGIN,
+          () => true
+        );
       }
       if (e.props.restitution > 1) {
         const pts = reachPoints(e);
@@ -211,6 +233,10 @@ export class ProgressMap {
           (x, y) => distanceTo(x, y) <= BOUNCE_RANGE
         );
       }
+    }
+    for (const zone of stage.zones ?? []) {
+      if (zone.type !== 'force' || zone.force[1] > LIFT_FORCE) continue;
+      mark(zone.x - zone.w / 2, zone.x + zone.w / 2, zone.y - zone.h / 2, zone.y + zone.h / 2, () => true);
     }
     return lift;
   }
@@ -252,7 +278,7 @@ export class ProgressMap {
   }
 
   /** 결승선 아래 칸에서 출발하는 Dijkstra (8방향, 대각선 √2). 가장 먼 거리를 돌려준다 */
-  private propagate(goalY: number) {
+  private propagate(goalY: number, holes: BlackHoleZone[]) {
     const { cols, rows, dist } = this;
     const heap = new MinHeap(cols * rows);
     const goalRow = Math.max(0, Math.min(rows - 1, Math.ceil((goalY - this.minY) / CELL)));
@@ -276,33 +302,75 @@ export class ProgressMap {
       [-1, 1, D],
       [1, 1, D],
     ];
-    let maxDist = 0;
-    while (heap.size > 0) {
-      const d = heap.topKey();
-      const i = heap.pop();
-      if (d > dist[i]) continue;
-      maxDist = d;
-      const r = (i / cols) | 0;
-      const c = i - r * cols;
-      for (const [dc, dr, w] of steps) {
-        const nc = c + dc;
-        const nr = r + dr;
-        if (nc < 0 || nc >= cols || nr < 0 || nr >= rows) continue;
-        const j = nr * cols + nc;
-        const cur = dist[j];
-        if (cur === BLOCKED) continue;
-        // 대각선은 양옆 두 칸이 모두 열려 있어야 지나간다 (벽 모서리를 뚫지 않게)
-        if (dc && dr && (dist[r * cols + nc] === BLOCKED || dist[nr * cols + c] === BLOCKED)) continue;
-        // 구슬은 j → i 로 움직인다. 일방통행 선을 거꾸로 넘는 이동은 없다
-        if (this.nearOneWay && (this.nearOneWay[i] || this.nearOneWay[j]) && this.crossesOneWayBackward(j, i)) continue;
-        // i 가 위쪽이면 올라가는 이동
-        const up = dr > 0 && !this.lift[i] && !this.lift[j];
-        const nd = d + (up ? w * UP_PENALTY : w);
-        if (nd < cur) {
-          dist[j] = nd;
-          heap.push(j, nd);
+    const drain = () => {
+      while (heap.size > 0) {
+        const d = heap.topKey();
+        const i = heap.pop();
+        if (d > dist[i]) continue;
+        const r = (i / cols) | 0;
+        const c = i - r * cols;
+        for (const [dc, dr, w] of steps) {
+          const nc = c + dc;
+          const nr = r + dr;
+          if (nc < 0 || nc >= cols || nr < 0 || nr >= rows) continue;
+          const j = nr * cols + nc;
+          const cur = dist[j];
+          if (cur === BLOCKED) continue;
+          // 대각선은 양옆 두 칸이 모두 열려 있어야 지나간다 (벽 모서리를 뚫지 않게)
+          if (dc && dr && (dist[r * cols + nc] === BLOCKED || dist[nr * cols + c] === BLOCKED)) continue;
+          // 구슬은 j → i 로 움직인다. 일방통행 선을 거꾸로 넘는 이동은 없다
+          if (this.nearOneWay && (this.nearOneWay[i] || this.nearOneWay[j]) && this.crossesOneWayBackward(j, i)) {
+            continue;
+          }
+          // i 가 위쪽이면 올라가는 이동
+          const up = dr > 0 && !this.lift[i] && !this.lift[j];
+          const nd = d + (up ? w * UP_PENALTY : w);
+          if (nd < cur) {
+            dist[j] = nd;
+            heap.push(j, nd);
+          }
         }
       }
+    };
+    drain();
+
+    // 블랙홀: 가운데 칸의 거리를 화이트홀 거리의 평균으로 낮추고 거기서부터 다시 퍼뜨린다.
+    // 화이트홀이 다른 블랙홀 뒤에 있을 수 있으니 더 낮아지는 곳이 없을 때까지 되풀이한다
+    for (let pass = 0; pass <= holes.length; pass++) {
+      let changed = false;
+      for (const hole of holes) {
+        let sum = 0;
+        let weight = 0;
+        for (const exit of hole.exits) {
+          const d = this.distanceAt(exit.x, exit.y);
+          if (d >= UNREACHABLE / 2) continue;
+          sum += d * (exit.weight ?? 1);
+          weight += exit.weight ?? 1;
+        }
+        if (weight === 0) continue;
+        const expected = sum / weight;
+        const c0 = Math.max(0, Math.floor((hole.x - hole.core - this.minX) / CELL));
+        const c1 = Math.min(cols - 1, Math.ceil((hole.x + hole.core - this.minX) / CELL));
+        const r0 = Math.max(0, Math.floor((hole.y - hole.core - this.minY) / CELL));
+        const r1 = Math.min(rows - 1, Math.ceil((hole.y + hole.core - this.minY) / CELL));
+        for (let r = r0; r <= r1; r++) {
+          for (let c = c0; c <= c1; c++) {
+            const i = r * cols + c;
+            if (dist[i] === BLOCKED || dist[i] <= expected) continue;
+            if (Math.hypot(this.cellX(c) - hole.x, this.cellY(r) - hole.y) > hole.core) continue;
+            dist[i] = expected;
+            heap.push(i, expected);
+            changed = true;
+          }
+        }
+      }
+      if (!changed) break;
+      drain();
+    }
+
+    let maxDist = 0;
+    for (let i = 0; i < dist.length; i++) {
+      if (dist[i] !== Infinity && dist[i] > maxDist) maxDist = dist[i];
     }
     return maxDist;
   }
@@ -400,7 +468,7 @@ export class ProgressMap {
 
 function isBlocking(e: MapEntity): boolean {
   if ((e.props.life ?? -1) > 0) return false;
-  if (e.type === 'kinematic' && e.props.angularVelocity !== 0) return false;
+  if (e.type === 'kinematic' && (e.props.angularVelocity !== 0 || e.motion)) return false;
   return true;
 }
 

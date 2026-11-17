@@ -1,8 +1,8 @@
 import type { RenderResolution } from './rouletteRenderer';
+import { load, save } from './storage';
 
 export type WinnerRange = { start: number; end: number };
 
-const RESOLUTION_STORAGE_KEY = 'roulette.resolution';
 const RESOLUTIONS: readonly string[] = ['default', 'high', 'ultra'] satisfies RenderResolution[];
 
 export function isRenderResolution(value: unknown): value is RenderResolution {
@@ -10,21 +10,14 @@ export function isRenderResolution(value: unknown): value is RenderResolution {
 }
 
 function loadResolution(): RenderResolution {
-  try {
-    const saved = localStorage.getItem(RESOLUTION_STORAGE_KEY);
-    if (isRenderResolution(saved)) return saved;
-  } catch {
-    // 저장소를 못 쓰는 환경(사생활 보호 모드 등)은 기본값
-  }
-  return 'default';
+  const saved = load('resolution');
+  if (isRenderResolution(saved)) return saved;
+  // 빔 프로젝터나 큰 화면에 띄워도 글자와 선이 흐려지지 않도록 처음부터 선명하게 그린다
+  return 'high';
 }
 
 export function saveResolution(value: RenderResolution) {
-  try {
-    localStorage.setItem(RESOLUTION_STORAGE_KEY, value);
-  } catch {
-    // 저장에 실패하면 이번 방문에만 적용된다
-  }
+  save('resolution', value);
 }
 
 class Options {
