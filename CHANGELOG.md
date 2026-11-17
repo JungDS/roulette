@@ -1,6 +1,10 @@
 # Changelog
 
 - 2026-11-17:
+    - Renamed to "부산반 룰렛" with its own icons. Third-party character images, a shop banner and icons of unknown origin are gone.
+    - Classroom draw types: decide an order, assign seats, split into teams, hand out snacks. Each shows its own result board.
+    - Saved name lists, "remove winners", draw history, a title banner and a full screen button.
+    - Names, lists and history stay in this browser only; saving can be turned off or erased. See PRIVACY.md for the full inventory.
     - Removed all ads.
     - The page no longer talks to any other server: analytics, the map share and keyword sprites are gone, and a Content Security Policy enforces it.
     - The bright theme is now the default (made for projectors): filled shapes, shadows, glossy marbles and a restyled UI.
