@@ -153,7 +153,9 @@ export class Box2dPhysics implements IPhysics {
             const v2 = new this.Box2D.b2Vec2(p2[0], p2[1]);
             const edge = new this.Box2D.b2EdgeShape();
             edge.SetTwoSided(v1, v2);
-            body.CreateFixture(edge, 1);
+            // 선에도 탄성을 준다 (범퍼 손잡이처럼 선으로 그린 튕기는 장애물). 기존 맵의 선은 모두 0 이라 바뀌지 않는다
+            fixtureDef.set_shape(edge);
+            body.CreateFixture(fixtureDef);
           }
           break;
         case 'circle':
