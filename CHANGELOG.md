@@ -1,5 +1,7 @@
 # Changelog
 
+- 2026-11-19:
+    - The pendulum at the end of Wheel of fortune is now a real gatekeeper: it rests aside and sweeps the goal bowl every 2.4 s, knocking marbles back to the Ferris wheel or over the divider into another lap.
 - 2026-11-18:
     - Wheel of fortune is rebuilt around three wheel bosses: meshing gears, a tarot wheel sweeping a sand bowl, and a Ferris wheel whose buckets decide between the finish and another lap. The leader at the last boss now wins 30-40% of the time (was 50-75%).
     - After the winner is decided, the rest of the race stays watchable: the winner banner shrinks, the settings panel waits until the last marble finishes, and skills keep firing.
