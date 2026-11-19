@@ -7,7 +7,7 @@
 //   회전 막대 줄  원작의 작은 바퀴 다섯 개
 //   마지막 보스   운명의 관람차: 바퀴에 매달린 컵에 실려 간다. 깊은 컵(초록) 은 결승으로,
 //                 얕은 컵(빨강) 과 컵을 놓친 구슬은 오른쪽 바람 리프트로 올라가 한 바퀴 더 탄다.
-//                 결승 입구는 진자 범퍼가 지킨다
+//                 결승 입구 위 그릇을 진자 문지기가 주기적으로 휩쓴다. 맞은 구슬은 다시 관람차로 돌아간다
 //
 // 구역마다 기준 높이(상수) 를 두고 그 기준으로 좌표를 적었다.
 
@@ -33,10 +33,21 @@ const FERRIS_Y = 142;
 const FERRIS_X = 13.9;
 const FERRIS_R = 3.4;
 const FERRIS_SPIN = 0.7;
-const MOUTH_Y = FERRIS_Y + 9;
-const MOUTH_LEFT = 13;
-const MOUTH_RIGHT = 14;
-const GOAL_Y = MOUTH_Y + 4;
+// 결승 문지기: 진자 축을 중심으로 한 둥근 그릇의 바닥에 결승 입구가 있다. 진자는 주기적으로 그릇 바닥을 휩쓸어,
+// 그때 지나던 구슬을 관람차나 되돌이 칸으로 쳐낸다
+const GATE_X = 13.5;
+const GATE_Y = FERRIS_Y + 6.4;
+const GATE_ROD = 1.9;
+const GATE_BOB = 0.45;
+/** 그릇 반지름. 추와 그릇 사이 틈(0.05) 이 구슬보다 좁아 휩쓸 때 구슬이 추 밑으로 빠져나가지 못한다 */
+const GATE_BOWL_R = GATE_ROD + GATE_BOB + 0.05;
+const MOUTH_HALF_ANGLE = 12 * DEG;
+const MOUTH_LEFT = round(GATE_X - GATE_BOWL_R * Math.sin(MOUTH_HALF_ANGLE));
+const MOUTH_RIGHT = round(GATE_X + GATE_BOWL_R * Math.sin(MOUTH_HALF_ANGLE));
+const MOUTH_Y = round(GATE_Y + GATE_BOWL_R * Math.cos(MOUTH_HALF_ANGLE));
+const GOAL_Y = round(MOUTH_Y + 4);
+/** 진자 각도(바로 아래 = 0, 오른쪽 = 양수) 를 arc() 의 각도(오른쪽 = 0, 시계 방향) 로 */
+const gateArc = (angle: number) => Math.PI / 2 - angle;
 
 // ---------------------------------------------------------------------------------------------
 // 바깥 벽 (시작부는 원작 좌표 그대로)
@@ -56,7 +67,8 @@ b.wall([
   [9.25, 64],
   [8.25, 65],
   [LEFT, FERRIS_Y + 3],
-  [MOUTH_LEFT, MOUTH_Y],
+  // 문지기 그릇의 왼쪽 (진자가 쳐올리는 끝까지). 끝점이 결승 입구 왼쪽이다
+  ...arc(GATE_X, GATE_Y, GATE_BOWL_R, gateArc(-78 * DEG), gateArc(-MOUTH_HALF_ANGLE)),
   [MOUTH_LEFT, GOAL_Y + 2],
 ]);
 b.wall([
@@ -271,14 +283,18 @@ b.solid([
   [RIGHT, FERRIS_Y - 9.75],
 ]);
 
-// 칸막이: 왼쪽은 결승 깔때기, 오른쪽은 리프트로 가는 되돌이 칸
-const DIVIDER_X = FERRIS_X + 3.25;
-const dividerTop = round(FERRIS_Y + Math.sqrt((FERRIS_REACH + 0.25) ** 2 - 3.25 ** 2));
+// 칸막이: 왼쪽은 결승 깔때기, 오른쪽은 리프트로 가는 되돌이 칸.
+// 바퀴에 닿지 않는 범위에서 왼쪽으로 붙여 키를 낮춘다. 문지기에게 맞은 구슬이 넘어갈 수 있게
+const DIVIDER_OFFSET = 2.7;
+const DIVIDER_X = FERRIS_X + DIVIDER_OFFSET;
+const dividerTop = round(FERRIS_Y + Math.sqrt((FERRIS_REACH + 0.25) ** 2 - DIVIDER_OFFSET ** 2));
 b.solid([
   [DIVIDER_X, dividerTop],
   [DIVIDER_X + 0.35, dividerTop],
-  [DIVIDER_X + 0.35, FERRIS_Y + 5.55],
-  [MOUTH_RIGHT, MOUTH_Y],
+  [DIVIDER_X + 0.35, MOUTH_Y + 0.8],
+  [MOUTH_RIGHT, MOUTH_Y + 0.8],
+  // 문지기 그릇의 오른쪽 (진자가 쉬는 자리까지)
+  ...arc(GATE_X, GATE_Y, GATE_BOWL_R, gateArc(MOUTH_HALF_ANGLE), gateArc(58 * DEG)),
 ]);
 // 되돌이 칸 바닥과 리프트
 b.wall([
@@ -300,19 +316,20 @@ b.zones.push({
 });
 b.zones.push({ type: 'force', x: 22.3, y: FERRIS_Y - 8, w: 3.4, h: 1.6, force: [-16, -6] });
 
-// 결승 통로와 진자 문지기
+// 결승 통로와 진자 문지기 (그릇은 바깥 벽과 칸막이에 들어 있다)
 b.wall([
   [MOUTH_RIGHT, MOUTH_Y],
   [MOUTH_RIGHT, GOAL_Y + 2],
 ]);
-const PENDULUM_LENGTH = 2;
-const PENDULUM_SWING = 32 * DEG;
-const pendulumX = (MOUTH_LEFT + MOUTH_RIGHT) / 2;
-const pendulumY = FERRIS_Y + FERRIS_REACH + 0.8;
-const pendulumMotion = { swing: PENDULUM_SWING * 2, period: 2.6 };
-b.movingLine(pendulumX, pendulumY, [[0, 0], rotate([0, PENDULUM_LENGTH], -PENDULUM_SWING)], pendulumMotion, '#475569');
-const [bobX, bobY] = rotate([0, PENDULUM_LENGTH], -PENDULUM_SWING);
-b.movingLine(pendulumX, pendulumY, polygon(bobX, bobY, 0.4), pendulumMotion, '#ff4d8d', 1.5);
+// 평소에는 그릇 오른쪽 위(45도) 에 쉬어 입구가 열려 있다. 2.4초마다 그릇 바닥을 오른쪽에서 왼쪽 위(-75도) 까지
+// 순식간에 휩쓸고 돌아온다. 그 순간 그릇을 지나던 구슬만 맞으니, 통과할지는 도착 타이밍에 달렸다.
+// 왼쪽으로 칠 때 맞으면 관람차 쪽으로 튕겨 올라가 다시 바퀴에 실리고, 돌아올 때 맞으면 칸막이 너머 되돌이 칸으로 간다
+const GATE_REST = -45 * DEG; // 반시계 방향 = 오른쪽
+const gateMotion = { swing: 120 * DEG, period: 2.4, wave: 'kick' as const };
+const rod: Pt[] = [[0, 0], rotate([0, GATE_ROD], GATE_REST)];
+const [bobX, bobY] = rotate([0, GATE_ROD], GATE_REST);
+b.movingLine(GATE_X, GATE_Y, rod, gateMotion, '#475569');
+b.movingLine(GATE_X, GATE_Y, polygon(bobX, bobY, GATE_BOB), gateMotion, '#ff4d8d', 1.5);
 
 const background: BackgroundStop[] = [
   { y: 0, color: '#eef4ff' },
